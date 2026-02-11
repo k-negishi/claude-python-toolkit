@@ -2,10 +2,9 @@
 
 ## 技術スタック
 
-- 開発環境: devcontainer
-- Node.js v24.11.0
-- TypeScript 5.x
-- パッケージマネージャー: npm
+- 開発環境: 
+- Python
+ 
 
 ## スペック駆動開発の基本原則
 

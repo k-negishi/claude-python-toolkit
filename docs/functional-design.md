@@ -115,10 +115,23 @@ class Article:
 ```python
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, TypeAlias
+from enum import Enum
 
-InterestLabel: TypeAlias = Literal["ACT_NOW", "THINK", "FYI", "IGNORE"]
-BuzzLabel: TypeAlias = Literal["HIGH", "MID", "LOW"]
+
+class InterestLabel(str, Enum):
+    """関心度ラベル."""
+    ACT_NOW = "ACT_NOW"
+    THINK = "THINK"
+    FYI = "FYI"
+    IGNORE = "IGNORE"
+
+
+class BuzzLabel(str, Enum):
+    """話題性ラベル."""
+    HIGH = "HIGH"
+    MID = "MID"
+    LOW = "LOW"
+
 
 @dataclass
 class JudgmentResult:
@@ -213,7 +226,21 @@ class ExecutionSummary:
 
 ```python
 from dataclasses import dataclass
-from typing import Literal
+from enum import Enum
+
+
+class FeedType(str, Enum):
+    """フィード種別."""
+    RSS = "rss"
+    ATOM = "atom"
+
+
+class Priority(str, Enum):
+    """優先度."""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
 
 @dataclass
 class SourceConfig:
@@ -232,8 +259,8 @@ class SourceConfig:
     source_id: str              # 例: "hacker_news"
     name: str                   # 例: "Hacker News"
     feed_url: str               # RSS/Atom フィードURL
-    feed_type: Literal["rss", "atom"]  # フィード種別
-    priority: Literal["high", "medium", "low"]  # 優先度
+    feed_type: FeedType         # フィード種別
+    priority: Priority          # 優先度
     timeout_seconds: int        # タイムアウト（デフォルト: 10秒）
     retry_count: int            # リトライ回数（デフォルト: 2回）
     enabled: bool               # 有効フラグ

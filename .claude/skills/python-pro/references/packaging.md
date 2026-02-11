@@ -79,12 +79,12 @@ Changelog = "https://github.com/username/myproject/blob/main/CHANGELOG.md"
 # Tool configurations
 [tool.black]
 line-length = 100
-target-version = ["py311"]
+target-version = ["py312"]
 include = '\.pyi?$'
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -100,7 +100,7 @@ ignore = []
 "__init__.py" = ["F401"]  # Ignore unused imports in __init__.py
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -152,7 +152,7 @@ license = "MIT"
 packages = [{include = "myproject", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 requests = "^2.31.0"
 pydantic = "^2.5.0"
 

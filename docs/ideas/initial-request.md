@@ -16,6 +16,7 @@
 * 再判定禁止（URL単位キャッシュ）を守ること
 * 単一責務原則（SRP）を破らないこと
 * 通知件数を増やす方向に改善しないこと
+* 個人開発なのでTooMuchにならないこと（複雑さ・コスト・運用負荷を最小限に）
 
 迷ったら必ず問うこと：
 
@@ -169,7 +170,39 @@
 
 ---
 
-# 6. 機能要件
+# 6. 収集元マスタ
+
+## 管理方針
+
+* 収集元は**マスタ**として管理し、アプリケーションコードとは分離する
+* 追加・削除は**マスタの変更のみ**で完結させる（コード改修不要）
+* RSS/AtomフィードのURL、名称、優先度などを定義
+
+## 収集元リスト（MVP対象）
+
+* **Hacker News** - https://news.ycombinator.com/rss
+* **はてなブックマーク** - テクノロジーカテゴリ
+* **Zenn** - トレンドフィード
+* **AWS Blog** - 公式ブログ
+* **PostgreSQL系ブログ** - Planet PostgreSQL等
+* **Uber Engineering Blog** - https://www.uber.com/blog/engineering/
+* **Airbnb Engineering Blog** - https://medium.com/airbnb-engineering
+* **GitHub Engineering Blog** - https://github.blog/engineering/
+* **Reddit** - r/programming, r/webdev等
+* **Qiita** - トレンドフィード
+* **企業ブログ拡張** - Mercari, CyberAgent等
+* **AI系ブログ** - OpenAI, Anthropic, Google AI等
+
+## 将来拡張候補
+
+* X（旧Twitter）ハッシュタグ／リスト
+* Dev.to
+* Medium publications
+* 技術カンファレンス動画（YouTube）
+
+---
+
+# 7. 機能要件
 
 ## 6.1 収集
 
@@ -254,7 +287,7 @@ LLMは数値計算を行わない。
 
 ---
 
-# 7. 非機能要件
+# 8. 非機能要件
 
 ## 7.1 可用性
 
@@ -270,7 +303,7 @@ LLMは数値計算を行わない。
 
 ---
 
-# 8. 技術構成
+# 9. 技術構成
 
 ## 実行基盤
 
@@ -284,7 +317,7 @@ Docker 構築が必要そうであれば教えてください。
 
 ---
 
-# 9. I/F設計
+# 10. I/F設計
 
 ## 外部I/F（Lambda）
 
@@ -314,7 +347,7 @@ Docker 構築が必要そうであれば教えてください。
 
 ---
 
-# 10. データ設計（DynamoDB）
+# 11. データ設計（DynamoDB）
 
 ## 判定キャッシュ
 
@@ -348,7 +381,7 @@ SK: SUMMARY#timestamp
 
 ---
 
-# 11. リスク管理
+# 12. リスク管理
 
 * LLM JSON崩れ → 再試行 → 失敗時IGNORE
 * ノイズ増 → 最終選定ロジック強化
@@ -356,7 +389,7 @@ SK: SUMMARY#timestamp
 
 ---
 
-# 12. デリバリ段階
+# 13. デリバリ段階
 
 ### Phase 1（MVP）
 
@@ -377,7 +410,7 @@ SK: SUMMARY#timestamp
 
 ---
 
-# 13. AIへの最終指示
+# 14. AIへの最終指示
 
 * 設計思想を変えるな
 * 通知件数を増やすな

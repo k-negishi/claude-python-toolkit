@@ -242,7 +242,7 @@ class ArchiveService:
 ```toml
 # pyproject.toml
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 fastapi = "^0.104.0"      # マイナーバージョンアップは自動
 pydantic = "2.5.0"        # 破壊的変更のリスクがある場合は固定
 
@@ -256,7 +256,7 @@ ruff = "^0.1.0"
 - 安定版は`^`でマイナーバージョンまで許可
 - 破壊的変更のリスクがある場合は完全固定
 - poetry.lockで厳密なバージョン管理
-- Python本体のバージョンは`^3.11`で3.11以上を指定
+- Python本体のバージョンは`^3.12`で3.12以上を指定
 
 ## チェックリスト
 

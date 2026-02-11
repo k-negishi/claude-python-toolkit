@@ -321,15 +321,30 @@ AWS Secrets Manager:
 
 **収集元マスタのバリデーション:**
 ```python
+from enum import Enum
 from pydantic import BaseModel, HttpUrl, Field
+
+
+class FeedType(str, Enum):
+    """フィード種別."""
+    RSS = "rss"
+    ATOM = "atom"
+
+
+class Priority(str, Enum):
+    """優先度."""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
 
 class SourceConfig(BaseModel):
     """収集元設定（バリデーション付き）."""
     source_id: str = Field(min_length=1, max_length=50, pattern="^[a-z0-9_]+$")
     name: str = Field(min_length=1, max_length=100)
     feed_url: HttpUrl  # URLフォーマット検証
-    feed_type: Literal["rss", "atom"]
-    priority: Literal["high", "medium", "low"]
+    feed_type: FeedType
+    priority: Priority
     timeout_seconds: int = Field(ge=5, le=30)  # 5-30秒
     retry_count: int = Field(ge=0, le=5)  # 0-5回
     enabled: bool
@@ -337,10 +352,29 @@ class SourceConfig(BaseModel):
 
 **LLM出力のバリデーション:**
 ```python
+from enum import Enum
+from pydantic import BaseModel, Field
+
+
+class InterestLabel(str, Enum):
+    """関心度ラベル."""
+    ACT_NOW = "ACT_NOW"
+    THINK = "THINK"
+    FYI = "FYI"
+    IGNORE = "IGNORE"
+
+
+class BuzzLabel(str, Enum):
+    """話題性ラベル."""
+    HIGH = "HIGH"
+    MID = "MID"
+    LOW = "LOW"
+
+
 class JudgmentOutput(BaseModel):
     """LLM判定出力（バリデーション付き）."""
-    interest_label: Literal["ACT_NOW", "THINK", "FYI", "IGNORE"]
-    buzz_label: Literal["HIGH", "MID", "LOW"]
+    interest_label: InterestLabel
+    buzz_label: BuzzLabel
     confidence: float = Field(ge=0.0, le=1.0)
     reason: str = Field(min_length=1, max_length=200)
 ```
