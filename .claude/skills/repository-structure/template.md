@@ -40,8 +40,9 @@ project-root/
 **例**:
 ```
 [ディレクトリ名]/
-├── [example-file1].ts
-└── [example-file2].ts
+├── __init__.py
+├── [example_file1].py
+└── [example_file2].py
 ```
 
 #### [ディレクトリ2]
@@ -73,8 +74,8 @@ tests/unit/
 ```
 
 **命名規則**:
-- パターン: `[テスト対象ファイル名].test.ts`
-- 例: `TaskService.ts` → `TaskService.test.ts`
+- パターン: `test_[テスト対象ファイル名].py`
+- 例: `task_service.py` → `test_task_service.py`
 
 #### integration/
 
@@ -140,9 +141,9 @@ config/
 
 | テスト種別 | 配置先 | 命名規則 | 例 |
 |-----------|--------|---------|-----|
-| ユニットテスト | tests/unit/ | [対象].test.ts | TaskService.test.ts |
-| 統合テスト | tests/integration/ | [機能].test.ts | task-crud.test.ts |
-| E2Eテスト | tests/e2e/ | [シナリオ].test.ts | user-workflow.test.ts |
+| ユニットテスト | tests/unit/ | test_[対象].py | test_task_service.py |
+| 統合テスト | tests/integration/ | test_[機能].py | test_task_crud.py |
+| E2Eテスト | tests/e2e/ | test_[シナリオ].py | test_user_workflow.py |
 
 ### 設定ファイル
 
@@ -163,17 +164,18 @@ config/
 
 ### ファイル名
 
-- **クラスファイル**: PascalCase
-  - 例: `TaskService.ts`, `UserRepository.ts`
-- **関数ファイル**: camelCase
-  - 例: `formatDate.ts`, `validateEmail.ts`
-- **定数ファイル**: UPPER_SNAKE_CASE
-  - 例: `API_ENDPOINTS.ts`, `ERROR_MESSAGES.ts`
+- **モジュールファイル**: snake_case
+  - 例: `task_service.py`, `user_repository.py`
+- **関数ファイル**: snake_case
+  - 例: `format_date.py`, `validate_email.py`
+- **定数ファイル**: snake_case (ファイル名)
+  - 例: `api_endpoints.py`, `error_messages.py`
+  - 注: ファイル内の定数名はUPPER_SNAKE_CASEを使用
 
 ### テストファイル名
 
-- パターン: `[テスト対象].test.ts` または `[テスト対象].spec.ts`
-- 例: `TaskService.test.ts`, `formatDate.spec.ts`
+- パターン: `test_[テスト対象].py`
+- 例: `test_task_service.py`, `test_format_date.py`
 
 ## 依存関係のルール
 
@@ -195,26 +197,30 @@ UIレイヤー
 ### モジュール間の依存
 
 **循環依存の禁止**:
-```typescript
-// ❌ 悪い例: 循環依存
-// fileA.ts
-import { funcB } from './fileB';
+```python
+# ❌ 悪い例: 循環依存
+# file_a.py
+from .file_b import func_b
 
-// fileB.ts
-import { funcA } from './fileA';  // 循環依存
+# file_b.py
+from .file_a import func_a  # 循環依存
 ```
 
 **解決策**:
-```typescript
-// ✅ 良い例: 共通モジュールの抽出
-// shared.ts
-export interface SharedType { /* ... */ }
+```python
+# ✅ 良い例: 共通モジュールの抽出
+# shared.py
+from typing import Protocol
 
-// fileA.ts
-import { SharedType } from './shared';
+class SharedType(Protocol):
+    """共通インターフェース。"""
+    ...
 
-// fileB.ts
-import { SharedType } from './shared';
+# file_a.py
+from .shared import SharedType
+
+# file_b.py
+from .shared import SharedType
 ```
 
 ## スケーリング戦略
@@ -231,11 +237,13 @@ import { SharedType } from './shared';
 ```
 src/
 ├── services/
-│   ├── TaskService.ts           # 既存機能
-│   └── task-management/         # 中規模機能の分離
-│       ├── TaskService.ts
-│       ├── SubtaskService.ts
-│       └── TaskCategoryService.ts
+│   ├── __init__.py
+│   ├── task_service.py          # 既存機能
+│   └── task_management/         # 中規模機能の分離
+│       ├── __init__.py
+│       ├── task_service.py
+│       ├── subtask_service.py
+│       └── task_category_service.py
 ```
 
 ### ファイルサイズの管理
@@ -290,17 +298,28 @@ src/
 ### .gitignore
 
 プロジェクトで除外すべきファイル:
-- `node_modules/`
+- `__pycache__/`
+- `*.py[cod]`
+- `*$py.class`
+- `.venv/`
+- `venv/`
 - `dist/`
+- `build/`
+- `*.egg-info/`
 - `.env`
 - `.steering/` (タスク管理用の一時ファイル)
 - `*.log`
 - `.DS_Store`
+- `.mypy_cache/`
+- `.pytest_cache/`
+- `.ruff_cache/`
 
-### .prettierignore, .eslintignore
+### .ruffignore
 
 ツールで除外すべきファイル:
+- `__pycache__/`
+- `.venv/`
 - `dist/`
-- `node_modules/`
+- `build/`
 - `.steering/`
-- `coverage/`
+- `.pytest_cache/`

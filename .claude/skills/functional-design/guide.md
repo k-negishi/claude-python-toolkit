@@ -67,40 +67,61 @@ graph TB
 
 ### ステップ3: データモデル定義
 
-#### TypeScript型定義で明確に
+#### Python型定義で明確に
 
-データモデルはTypeScriptのインターフェースで定義します。
+データモデルはPythonのdataclassで定義します。
 
 **基本的なTask型の例**:
-```typescript
-interface Task {
-  id: string;                    // UUID v4
-  title: string;                 // 1-200文字
-  description?: string;          // オプション、Markdown形式
-  status: TaskStatus;            // 'todo' | 'in_progress' | 'completed'
-  priority: TaskPriority;        // 'high' | 'medium' | 'low'
-  estimatedPriority?: TaskPriority;  // 自動推定された優先度
-  dueDate?: Date;                // 期限
-  createdAt: Date;               // 作成日時
-  updatedAt: Date;               // 更新日時
-  statusHistory?: StatusChange[]; // ステータス変更履歴
-}
+```python
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Literal, TypeAlias
 
-type TaskStatus = 'todo' | 'in_progress' | 'completed';
-type TaskPriority = 'high' | 'medium' | 'low';
+# 型エイリアスで可読性を向上
+TaskStatus: TypeAlias = Literal["todo", "in_progress", "completed"]
+TaskPriority: TypeAlias = Literal["high", "medium", "low"]
 
-interface StatusChange {
-  from: TaskStatus;
-  to: TaskStatus;
-  changedAt: Date;
-}
+@dataclass
+class StatusChange:
+    """ステータス変更履歴."""
+    from_status: TaskStatus
+    to_status: TaskStatus
+    changed_at: datetime
+
+@dataclass
+class Task:
+    """タスクエンティティ.
+
+    Attributes:
+        id: UUID v4形式のタスクID
+        title: タスクのタイトル (1-200文字)
+        status: タスクの現在のステータス
+        priority: タスクの優先度
+        created_at: タスク作成日時
+        updated_at: タスク最終更新日時
+        description: タスクの詳細説明 (Markdown形式)
+        estimated_priority: 自動推定された優先度
+        due_date: タスクの期限
+        status_history: ステータス変更履歴
+    """
+    id: str                                    # UUID v4
+    title: str                                 # 1-200文字
+    status: TaskStatus                         # 'todo' | 'in_progress' | 'completed'
+    priority: TaskPriority                     # 'high' | 'medium' | 'low'
+    created_at: datetime                       # 作成日時
+    updated_at: datetime                       # 更新日時
+    description: str | None = None             # オプション、Markdown形式
+    estimated_priority: TaskPriority | None = None  # 自動推定された優先度
+    due_date: datetime | None = None           # 期限
+    status_history: list[StatusChange] | None = None  # ステータス変更履歴
 ```
 
 **重要なポイント**:
-- 各フィールドにコメントで説明を追加
+- dataclassでボイラープレートを削減
+- Googleスタイルのdocstringで説明を追加
 - 制約（文字数、形式など）を明記
-- オプションフィールドには`?`を付ける
-- 型エイリアスで可読性を向上
+- オプションフィールドには`| None`とデフォルト値を設定
+- 型エイリアスとLiteralで可読性を向上
 
 #### ER図の作成
 
@@ -133,57 +154,169 @@ erDiagram
 
 **責務**: ユーザー入力の受付、バリデーション、結果の表示
 
-```typescript
-// CommandLineInterface
-class CLI {
-  // ユーザー入力を受け付ける
-  parseArguments(): Command;
+```python
+from dataclasses import dataclass
+from typing import Any
 
-  // 結果を表示する
-  displayResult(result: Result): void;
+@dataclass
+class Command:
+    """コマンドデータ."""
+    action: str
+    params: dict[str, Any]
 
-  // エラーを表示する
-  displayError(error: Error): void;
-}
+@dataclass
+class Result:
+    """実行結果."""
+    success: bool
+    message: str
+    data: Any = None
+
+class CLI:
+    """コマンドラインインターフェース."""
+
+    def parse_arguments(self) -> Command:
+        """ユーザー入力を受け付ける.
+
+        Returns:
+            パースされたコマンドオブジェクト
+        """
+        ...
+
+    def display_result(self, result: Result) -> None:
+        """結果を表示する.
+
+        Args:
+            result: 実行結果
+        """
+        ...
+
+    def display_error(self, error: Exception) -> None:
+        """エラーを表示する.
+
+        Args:
+            error: エラーオブジェクト
+        """
+        ...
 ```
 
 #### サービスレイヤー
 
 **責務**: ビジネスロジックの実装
 
-```typescript
-// TaskManager
-class TaskManager {
-  // タスクを作成する
-  createTask(data: CreateTaskData): Task;
+```python
+from dataclasses import dataclass
+from typing import Any
 
-  // タスク一覧を取得する
-  listTasks(filter?: FilterOptions): Task[];
+@dataclass
+class CreateTaskData:
+    """タスク作成データ."""
+    title: str
+    description: str | None = None
+    priority: TaskPriority | None = None
+    due_date: datetime | None = None
 
-  // タスクを更新する
-  updateTask(id: string, data: UpdateTaskData): Task;
+@dataclass
+class UpdateTaskData:
+    """タスク更新データ."""
+    title: str | None = None
+    description: str | None = None
+    status: TaskStatus | None = None
+    priority: TaskPriority | None = None
 
-  // タスクを削除する
-  deleteTask(id: string): void;
-}
+@dataclass
+class FilterOptions:
+    """フィルタオプション."""
+    status: TaskStatus | None = None
+    priority: TaskPriority | None = None
+
+class TaskManager:
+    """タスク管理サービス."""
+
+    def create_task(self, data: CreateTaskData) -> Task:
+        """タスクを作成する.
+
+        Args:
+            data: タスク作成データ
+
+        Returns:
+            作成されたタスク
+        """
+        ...
+
+    def list_tasks(self, filter_options: FilterOptions | None = None) -> list[Task]:
+        """タスク一覧を取得する.
+
+        Args:
+            filter_options: フィルタオプション
+
+        Returns:
+            タスクのリスト
+        """
+        ...
+
+    def update_task(self, task_id: str, data: UpdateTaskData) -> Task:
+        """タスクを更新する.
+
+        Args:
+            task_id: タスクID
+            data: 更新データ
+
+        Returns:
+            更新されたタスク
+        """
+        ...
+
+    def delete_task(self, task_id: str) -> None:
+        """タスクを削除する.
+
+        Args:
+            task_id: 削除するタスクのID
+        """
+        ...
 ```
 
 #### データレイヤー
 
 **責務**: データの永続化と取得
 
-```typescript
-// FileStorage
-class FileStorage {
-  // データを保存する
-  save(data: any): void;
+```python
+from typing import Any
+from pathlib import Path
 
-  // データを読み込む
-  load(): any;
+class FileStorage:
+    """ファイルストレージ."""
 
-  // ファイルが存在するか確認する
-  exists(): boolean;
-}
+    def __init__(self, file_path: Path) -> None:
+        """ストレージを初期化する.
+
+        Args:
+            file_path: データファイルのパス
+        """
+        self._file_path = file_path
+
+    def save(self, data: Any) -> None:
+        """データを保存する.
+
+        Args:
+            data: 保存するデータ
+        """
+        ...
+
+    def load(self) -> Any:
+        """データを読み込む.
+
+        Returns:
+            読み込んだデータ
+        """
+        ...
+
+    def exists(self) -> bool:
+        """ファイルが存在するか確認する.
+
+        Returns:
+            ファイルが存在する場合True
+        """
+        ...
 ```
 
 ### ステップ5: アルゴリズム設計（該当する場合）
@@ -207,19 +340,33 @@ class FileStorage {
 ```
 
 **計算式**:
-```typescript
-function calculateDeadlineScore(dueDate?: Date): number {
-  if (!dueDate) return 20;
+```python
+from datetime import datetime, timedelta
 
-  const now = new Date();
-  const daysRemaining = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+def calculate_deadline_score(due_date: datetime | None) -> int:
+    """期限スコアを計算する.
 
-  if (daysRemaining < 0) return 100;  // 期限超過
-  if (daysRemaining <= 3) return 90;
-  if (daysRemaining <= 7) return 70;
-  if (daysRemaining <= 14) return 50;
-  return 30;
-}
+    Args:
+        due_date: タスクの期限
+
+    Returns:
+        期限スコア (0-100点)
+    """
+    if due_date is None:
+        return 20
+
+    now = datetime.now()
+    days_remaining = (due_date - now).days
+
+    if days_remaining < 0:
+        return 100  # 期限超過
+    if days_remaining <= 3:
+        return 90
+    if days_remaining <= 7:
+        return 70
+    if days_remaining <= 14:
+        return 50
+    return 30
 ```
 
 ##### ステップ2: 経過時間スコア計算（0-100点）
@@ -232,17 +379,28 @@ function calculateDeadlineScore(dueDate?: Date): number {
 ```
 
 **計算式**:
-```typescript
-function calculateAgeScore(createdAt: Date): number {
-  const now = new Date();
-  const daysOld = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+```python
+def calculate_age_score(created_at: datetime) -> int:
+    """経過時間スコアを計算する.
 
-  if (daysOld >= 30) return 100;
-  if (daysOld >= 21) return 80;
-  if (daysOld >= 14) return 60;
-  if (daysOld >= 7) return 40;
-  return 20;
-}
+    Args:
+        created_at: タスク作成日時
+
+    Returns:
+        経過時間スコア (0-100点)
+    """
+    now = datetime.now()
+    days_old = (now - created_at).days
+
+    if days_old >= 30:
+        return 100
+    if days_old >= 21:
+        return 80
+    if days_old >= 14:
+        return 60
+    if days_old >= 7:
+        return 40
+    return 20
 ```
 
 ##### ステップ3: ステータススコア計算（0-100点）
@@ -253,12 +411,21 @@ function calculateAgeScore(createdAt: Date): number {
 ```
 
 **計算式**:
-```typescript
-function calculateStatusScore(status: TaskStatus): number {
-  if (status === 'in_progress') return 100;
-  if (status === 'todo') return 50;
-  return 0;  // completed
-}
+```python
+def calculate_status_score(status: TaskStatus) -> int:
+    """ステータススコアを計算する.
+
+    Args:
+        status: タスクのステータス
+
+    Returns:
+        ステータススコア (0-100点)
+    """
+    if status == "in_progress":
+        return 100
+    if status == "todo":
+        return 50
+    return 0  # completed
 ```
 
 ##### ステップ4: 総合スコア計算
@@ -269,14 +436,21 @@ function calculateStatusScore(status: TaskStatus): number {
 ```
 
 **計算式**:
-```typescript
-function calculateTotalScore(task: Task): number {
-  const deadlineScore = calculateDeadlineScore(task.dueDate);
-  const ageScore = calculateAgeScore(task.createdAt);
-  const statusScore = calculateStatusScore(task.status);
+```python
+def calculate_total_score(task: Task) -> float:
+    """総合スコアを計算する.
 
-  return (deadlineScore * 0.5) + (ageScore * 0.2) + (statusScore * 0.3);
-}
+    Args:
+        task: 評価対象のタスク
+
+    Returns:
+        総合スコア (0-100点)
+    """
+    deadline_score = calculate_deadline_score(task.due_date)
+    age_score = calculate_age_score(task.created_at)
+    status_score = calculate_status_score(task.status)
+
+    return (deadline_score * 0.5) + (age_score * 0.2) + (status_score * 0.3)
 ```
 
 ##### ステップ5: 優先度分類
@@ -289,61 +463,114 @@ function calculateTotalScore(task: Task): number {
 ```
 
 **計算式**:
-```typescript
-function estimatePriority(task: Task): TaskPriority {
-  const score = calculateTotalScore(task);
+```python
+def estimate_priority(task: Task) -> TaskPriority:
+    """優先度を推定する.
 
-  if (score >= 70) return 'high';
-  if (score >= 40) return 'medium';
-  return 'low';
-}
+    Args:
+        task: 評価対象のタスク
+
+    Returns:
+        推定された優先度
+    """
+    score = calculate_total_score(task)
+
+    if score >= 70:
+        return "high"
+    if score >= 40:
+        return "medium"
+    return "low"
 ```
 
 **完全な実装例**:
-```typescript
-class PriorityEstimator {
-  estimate(task: Task): TaskPriority {
-    const deadlineScore = this.calculateDeadlineScore(task.dueDate);
-    const ageScore = this.calculateAgeScore(task.createdAt);
-    const statusScore = this.calculateStatusScore(task.status);
+```python
+from datetime import datetime
 
-    const totalScore = (deadlineScore * 0.5) + (ageScore * 0.2) + (statusScore * 0.3);
+class PriorityEstimator:
+    """タスクの優先度を自動推定するクラス."""
 
-    if (totalScore >= 70) return 'high';
-    if (totalScore >= 40) return 'medium';
-    return 'low';
-  }
+    def estimate(self, task: Task) -> TaskPriority:
+        """タスクの優先度を推定する.
 
-  private calculateDeadlineScore(dueDate?: Date): number {
-    if (!dueDate) return 20;
+        Args:
+            task: 評価対象のタスク
 
-    const now = new Date();
-    const daysRemaining = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        Returns:
+            推定された優先度
+        """
+        deadline_score = self._calculate_deadline_score(task.due_date)
+        age_score = self._calculate_age_score(task.created_at)
+        status_score = self._calculate_status_score(task.status)
 
-    if (daysRemaining < 0) return 100;
-    if (daysRemaining <= 3) return 90;
-    if (daysRemaining <= 7) return 70;
-    if (daysRemaining <= 14) return 50;
-    return 30;
-  }
+        total_score = (deadline_score * 0.5) + (age_score * 0.2) + (status_score * 0.3)
 
-  private calculateAgeScore(createdAt: Date): number {
-    const now = new Date();
-    const daysOld = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        if total_score >= 70:
+            return "high"
+        if total_score >= 40:
+            return "medium"
+        return "low"
 
-    if (daysOld >= 30) return 100;
-    if (daysOld >= 21) return 80;
-    if (daysOld >= 14) return 60;
-    if (daysOld >= 7) return 40;
-    return 20;
-  }
+    def _calculate_deadline_score(self, due_date: datetime | None) -> int:
+        """期限スコアを計算する.
 
-  private calculateStatusScore(status: TaskStatus): number {
-    if (status === 'in_progress') return 100;
-    if (status === 'todo') return 50;
-    return 0;
-  }
-}
+        Args:
+            due_date: タスクの期限
+
+        Returns:
+            期限スコア (0-100点)
+        """
+        if due_date is None:
+            return 20
+
+        now = datetime.now()
+        days_remaining = (due_date - now).days
+
+        if days_remaining < 0:
+            return 100  # 期限超過
+        if days_remaining <= 3:
+            return 90
+        if days_remaining <= 7:
+            return 70
+        if days_remaining <= 14:
+            return 50
+        return 30
+
+    def _calculate_age_score(self, created_at: datetime) -> int:
+        """経過時間スコアを計算する.
+
+        Args:
+            created_at: タスク作成日時
+
+        Returns:
+            経過時間スコア (0-100点)
+        """
+        now = datetime.now()
+        days_old = (now - created_at).days
+
+        if days_old >= 30:
+            return 100
+        if days_old >= 21:
+            return 80
+        if days_old >= 14:
+            return 60
+        if days_old >= 7:
+            return 40
+        return 20
+
+    def _calculate_status_score(self, status: TaskStatus) -> int:
+        """ステータススコアを計算する.
+
+        Args:
+            status: タスクのステータス
+
+        Returns:
+            ステータススコア (0-100点)
+        """
+        if status == "in_progress":
+            return 100
+        if status == "todo":
+            return 50
+        return 0  # completed
 ```
 
 ### ステップ6: ユースケース図

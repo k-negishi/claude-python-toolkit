@@ -57,31 +57,40 @@ CLI/UIレイヤー      → commands/, cli/
 データレイヤー      → repositories/, storage/
 ```
 
+**Pythonの場合の補足**:
+- 各ディレクトリには`__init__.py`を配置してパッケージ化
+- ファイル名はsnake_caseを使用（例: `task_service.py`）
+- クラス名はPascalCase（例: `TaskService`）
+
 ## ディレクトリ構造の設計
 
 ### レイヤー構造の表現
 
-```typescript
-// 悪い例: 平坦な構造
+```python
+# 悪い例: 平坦な構造
 src/
-├── TaskCLI.ts
-├── TaskService.ts
-├── TaskRepository.ts
-├── UserCLI.ts
-├── UserService.ts
-└── UserRepository.ts
+├── task_cli.py
+├── task_service.py
+├── task_repository.py
+├── user_cli.py
+├── user_service.py
+└── user_repository.py
 
-// 良い例: レイヤーを明確に
+# 良い例: レイヤーを明確に
 src/
+├── __init__.py
 ├── cli/
-│   ├── TaskCLI.ts
-│   └── UserCLI.ts
+│   ├── __init__.py
+│   ├── task_cli.py
+│   └── user_cli.py
 ├── services/
-│   ├── TaskService.ts
-│   └── UserService.ts
+│   ├── __init__.py
+│   ├── task_service.py
+│   └── user_service.py
 └── repositories/
-    ├── TaskRepository.ts
-    └── UserRepository.ts
+    ├── __init__.py
+    ├── task_repository.py
+    └── user_repository.py
 ```
 
 ### テストディレクトリの配置
@@ -91,13 +100,19 @@ src/
 project/
 ├── src/
 │   └── services/
-│       └── TaskService.ts
+│       ├── __init__.py
+│       └── task_service.py
 └── tests/
+    ├── __init__.py
     ├── unit/
+    │   ├── __init__.py
     │   └── services/
-    │       └── TaskService.test.ts
+    │       ├── __init__.py
+    │       └── test_task_service.py
     ├── integration/
+    │   └── __init__.py
     └── e2e/
+        └── __init__.py
 ```
 
 **理由**:
@@ -146,131 +161,147 @@ project/
 
 ### ファイル名の原則
 
-**1. クラスファイル: PascalCase + 役割接尾辞**
-```typescript
-// サービスクラス
-TaskService.ts
-UserAuthenticationService.ts
+**1. クラスファイル: snake_case (Pythonの標準)**
+```python
+# サービスクラス
+task_service.py
+user_authentication_service.py
 
-// リポジトリクラス
-TaskRepository.ts
-UserRepository.ts
+# リポジトリクラス
+task_repository.py
+user_repository.py
 
-// コントローラークラス
-TaskController.ts
+# コントローラークラス
+task_controller.py
 ```
 
-**2. 関数ファイル: camelCase + 動詞で始める**
-```typescript
-// ユーティリティ関数
-formatDate.ts
-validateEmail.ts
-parseCommandArguments.ts
+**2. 関数ファイル: snake_case + 動詞で始める**
+```python
+# ユーティリティ関数
+format_date.py
+validate_email.py
+parse_command_arguments.py
 ```
 
-**3. 型定義ファイル: PascalCase または kebab-case**
-```typescript
-// インターフェース定義
-Task.ts
-UserProfile.ts
+**3. 型定義ファイル: snake_case**
+```python
+# 型定義（dataclass、Protocol、TypedDictなど）
+task.py
+user_profile.py
 
-// 型定義集
-task-types.d.ts
-api-types.d.ts
+# 型定義集
+task_types.py
+api_types.py
 ```
 
-**4. 定数ファイル: UPPER_SNAKE_CASE または kebab-case**
-```typescript
-// 定数定義
-API_ENDPOINTS.ts
-ERROR_MESSAGES.ts
+**4. 定数ファイル: snake_case (ファイル名) / UPPER_SNAKE_CASE (変数名)**
+```python
+# 定数定義ファイル
+api_endpoints.py
+error_messages.py
 
-// または
-api-endpoints.ts
-error-messages.ts
+# ファイル内では定数名をUPPER_SNAKE_CASEで定義
+# api_endpoints.py
+BASE_URL = "https://api.example.com"
+DEFAULT_TIMEOUT = 30
 ```
 
 ## 依存関係の管理
 
 ### レイヤー間の依存ルール
 
-```typescript
-// ✅ 良い例: 上位レイヤーから下位レイヤーへの依存
-// cli/TaskCLI.ts
-import { TaskService } from '../services/TaskService';
+```python
+# ✅ 良い例: 上位レイヤーから下位レイヤーへの依存
+# cli/task_cli.py
+from ..services.task_service import TaskService
 
-class TaskCLI {
-  constructor(private taskService: TaskService) {}
-}
+class TaskCLI:
+    """CLIインターフェース。"""
 
-// ❌ 悪い例: 下位レイヤーから上位レイヤーへの依存
-// services/TaskService.ts
-import { TaskCLI } from '../cli/TaskCLI';  // 禁止！
+    def __init__(self, task_service: TaskService) -> None:
+        self.task_service = task_service
+
+# ❌ 悪い例: 下位レイヤーから上位レイヤーへの依存
+# services/task_service.py
+from ..cli.task_cli import TaskCLI  # 禁止！
 ```
 
 ### 循環依存の回避
 
 **問題のあるコード**:
-```typescript
-// services/TaskService.ts
-import { UserService } from './UserService';
+```python
+# services/task_service.py
+from .user_service import UserService
 
-export class TaskService {
-  constructor(private userService: UserService) {}
-}
+class TaskService:
+    def __init__(self, user_service: UserService) -> None:
+        self.user_service = user_service
 
-// services/UserService.ts
-import { TaskService } from './TaskService';  // 循環依存！
+# services/user_service.py
+from .task_service import TaskService  # 循環依存！
 
-export class UserService {
-  constructor(private taskService: TaskService) {}
-}
+class UserService:
+    def __init__(self, task_service: TaskService) -> None:
+        self.task_service = task_service
 ```
 
-**解決策1: 共通の型定義を抽出**
-```typescript
-// types/Service.ts
-export interface ITaskService { /* ... */ }
-export interface IUserService { /* ... */ }
+**解決策1: Protocolを使った抽象化**
+```python
+# types/service_protocols.py
+from typing import Protocol
 
-// services/TaskService.ts
-import type { IUserService } from '../types/Service';
+class ITaskService(Protocol):
+    """タスクサービスのインターフェース。"""
+    def create_task(self, title: str) -> None: ...
 
-export class TaskService {
-  constructor(private userService: IUserService) {}
-}
+class IUserService(Protocol):
+    """ユーザーサービスのインターフェース。"""
+    def get_user(self, user_id: int) -> dict[str, str]: ...
 
-// services/UserService.ts
-import type { ITaskService } from '../types/Service';
+# services/task_service.py
+from ..types.service_protocols import IUserService
 
-export class UserService {
-  constructor(private taskService: ITaskService) {}
-}
+class TaskService:
+    def __init__(self, user_service: IUserService) -> None:
+        self.user_service = user_service
+
+# services/user_service.py
+from ..types.service_protocols import ITaskService
+
+class UserService:
+    def __init__(self, task_service: ITaskService) -> None:
+        self.task_service = task_service
 ```
 
 **解決策2: 依存関係を見直す**
-```typescript
-// 共通の機能を別サービスに抽出
-// services/NotificationService.ts
-export class NotificationService {
-  notifyTaskAssignment(taskId: string, userId: string): void {
-    // 通知処理
-  }
-}
+```python
+# 共通の機能を別サービスに抽出
+# services/notification_service.py
+class NotificationService:
+    """通知サービス。"""
 
-// services/TaskService.ts
-import { NotificationService } from './NotificationService';
+    def notify_task_assignment(self, task_id: str, user_id: str) -> None:
+        """タスク割り当ての通知を送信する。
 
-export class TaskService {
-  constructor(private notificationService: NotificationService) {}
-}
+        Args:
+            task_id: タスクID
+            user_id: ユーザーID
+        """
+        # 通知処理
 
-// services/UserService.ts
-import { NotificationService } from './NotificationService';
+# services/task_service.py
+from .notification_service import NotificationService
 
-export class UserService {
-  constructor(private notificationService: NotificationService) {}
-}
+class TaskService:
+    def __init__(self, notification_service: NotificationService) -> None:
+        self.notification_service = notification_service
+
+# services/user_service.py
+from .notification_service import NotificationService
+
+class UserService:
+    def __init__(self, notification_service: NotificationService) -> None:
+        self.notification_service = notification_service
 ```
 
 ## スケーリング戦略
@@ -280,20 +311,25 @@ export class UserService {
 **標準パターン**:
 ```
 src/
+├── __init__.py
 ├── commands/
-│   └── TaskCommand.ts
+│   ├── __init__.py
+│   └── task_command.py
 ├── services/
-│   ├── TaskService.ts
-│   └── UserService.ts
+│   ├── __init__.py
+│   ├── task_service.py
+│   └── user_service.py
 ├── repositories/
-│   ├── TaskRepository.ts
-│   └── UserRepository.ts
+│   ├── __init__.py
+│   ├── task_repository.py
+│   └── user_repository.py
 ├── types/
-│   ├── Task.ts
-│   └── User.ts
-├── validators/
-│   └── TaskValidator.ts
-└── index.ts
+│   ├── __init__.py
+│   ├── task.py
+│   └── user.py
+└── validators/
+    ├── __init__.py
+    └── task_validator.py
 ```
 
 **理由**:
@@ -310,24 +346,28 @@ src/
 4. 他の機能への依存が少ない
 
 **分離の手順**:
-```typescript
-// Before: 全てservices/に配置
+```python
+# Before: 全てservices/に配置
 services/
-├── TaskService.ts
-├── TaskValidationService.ts
-├── TaskNotificationService.ts
-├── UserService.ts
-└── UserAuthService.ts
+├── __init__.py
+├── task_service.py
+├── task_validation_service.py
+├── task_notification_service.py
+├── user_service.py
+└── user_auth_service.py
 
-// After: 機能ごとにモジュール化
+# After: 機能ごとにモジュール化
 modules/
+├── __init__.py
 ├── task/
-│   ├── TaskService.ts
-│   ├── TaskValidationService.ts
-│   └── TaskNotificationService.ts
+│   ├── __init__.py
+│   ├── task_service.py
+│   ├── task_validation_service.py
+│   └── task_notification_service.py
 └── user/
-    ├── UserService.ts
-    └── UserAuthService.ts
+    ├── __init__.py
+    ├── user_service.py
+    └── user_auth_service.py
 ```
 
 ## 特殊なケースの対応

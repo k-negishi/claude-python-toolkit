@@ -27,14 +27,26 @@ graph TB
 
 ### エンティティ: [エンティティ名]
 
-```typescript
-interface [EntityName] {
-  id: string;              // UUID
-  [field1]: [type];        // [説明]
-  [field2]: [type];        // [説明]
-  createdAt: Date;         // 作成日時
-  updatedAt: Date;         // 更新日時
-}
+```python
+from dataclasses import dataclass
+from datetime import datetime
+
+@dataclass
+class [EntityName]:
+    """[エンティティの説明].
+
+    Attributes:
+        id: UUID形式のエンティティID
+        [field1]: [説明]
+        [field2]: [説明]
+        created_at: 作成日時
+        updated_at: 更新日時
+    """
+    id: str                    # UUID
+    [field1]: [type]           # [説明]
+    [field2]: [type]           # [説明]
+    created_at: datetime       # 作成日時
+    updated_at: datetime       # 更新日時
 ```
 
 **制約**:
@@ -67,11 +79,31 @@ erDiagram
 - [責務2]
 
 **インターフェース**:
-```typescript
-class [ComponentName] {
-  [method1]([params]): [return];
-  [method2]([params]): [return];
-}
+```python
+class [ComponentName]:
+    """[コンポーネントの説明]."""
+
+    def [method1](self, [params]) -> [return]:
+        """[メソッドの説明].
+
+        Args:
+            [param]: [説明]
+
+        Returns:
+            [戻り値の説明]
+        """
+        ...
+
+    def [method2](self, [params]) -> [return]:
+        """[メソッドの説明].
+
+        Args:
+            [param]: [説明]
+
+        Returns:
+            [戻り値の説明]
+        """
+        ...
 ```
 
 **依存関係**:
@@ -170,22 +202,31 @@ POST /api/[resource]
 - [分類3]: スコア < [閾値]
 
 **実装例**:
-```typescript
-function [algorithmName]([params]): [return] {
-  // ステップ1
-  const score1 = [calculation];
+```python
+def [algorithm_name]([params]) -> [return]:
+    """[アルゴリズムの説明].
 
-  // ステップ2
-  const score2 = [calculation];
+    Args:
+        [param]: [説明]
 
-  // 総合スコア
-  const totalScore = (score1 * weight1) + (score2 * weight2);
+    Returns:
+        [戻り値の説明]
+    """
+    # ステップ1
+    score1 = [calculation]
 
-  // 分類
-  if (totalScore >= threshold1) return '[分類1]';
-  if (totalScore >= threshold2) return '[分類2]';
-  return '[分類3]';
-}
+    # ステップ2
+    score2 = [calculation]
+
+    # 総合スコア
+    total_score = (score1 * weight1) + (score2 * weight2)
+
+    # 分類
+    if total_score >= threshold1:
+        return "[分類1]"
+    if total_score >= threshold2:
+        return "[分類2]"
+    return "[分類3]"
 ```
 
 ## UI設計（該当する場合）

@@ -24,7 +24,7 @@
 - 「タスクを追加する」: 新しいタスクをシステムに登録する
 - 「タスクを完了する」: タスクのステータスを完了に変更する
 
-**データモデル**: `src/types/Task.ts`
+**データモデル**: `src/types/task.py`
 ```
 
 ### 2. 具体例を含める
@@ -47,11 +47,18 @@
 - low: 期限が1週間以上先、または期限なし
 
 **使用例**:
-```typescript
-const task: Task = {
-  title: 'セキュリティ脆弱性の修正',
-  priority: 'high', // 緊急対応が必要
-};
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Task:
+    title: str
+    priority: str
+
+task = Task(
+    title='セキュリティ脆弱性の修正',
+    priority='high',  # 緊急対応が必要
+)
 ```
 ```
 
@@ -328,22 +335,29 @@ stateDiagram-v2
 ```
 
 **実装**:
-```typescript
-// src/types/Task.ts
-export type TaskStatus = 'todo' | 'in_progress' | 'completed';
+```python
+# src/types/task.py
+from typing import Literal
 
-// 状態遷移の検証
-function canTransition(
-  from: TaskStatus,
-  to: TaskStatus
-): boolean {
-  const validTransitions: Record<TaskStatus, TaskStatus[]> = {
-    todo: ['in_progress'],
-    in_progress: ['completed', 'todo'],
-    completed: ['todo'],
-  };
-  return validTransitions[from].includes(to);
-}
+TaskStatus = Literal['todo', 'in_progress', 'completed']
+
+# 状態遷移の検証
+def can_transition(from_status: TaskStatus, to_status: TaskStatus) -> bool:
+    """タスクステータスの遷移が有効かどうかを検証する。
+
+    Args:
+        from_status: 現在のステータス
+        to_status: 遷移先のステータス
+
+    Returns:
+        遷移が有効な場合はTrue、そうでなければFalse
+    """
+    valid_transitions: dict[TaskStatus, list[TaskStatus]] = {
+        'todo': ['in_progress'],
+        'in_progress': ['completed', 'todo'],
+        'completed': ['todo'],
+    }
+    return to_status in valid_transitions[from_status]
 ```
 
 **ビジネスルール**:
@@ -408,25 +422,37 @@ function canTransition(
 **実装箇所**: `src/errors/ValidationError.ts`
 
 **使用例**:
-```typescript
-// エラーのスロー
-if (title.length === 0) {
-  throw new ValidationError(
-    'タイトルは必須です',
-    'title',
-    title
-  );
-}
+```python
+from dataclasses import dataclass
+from typing import Any
 
-// エラーのハンドリング
-try {
-  await taskService.create(data);
-} catch (error) {
-  if (error instanceof ValidationError) {
-    console.error(`入力エラー: ${error.message}`);
-    console.error(`フィールド: ${error.field}`);
-  }
-}
+@dataclass
+class ValidationError(Exception):
+    """バリデーションエラー。
+
+    Args:
+        message: エラーメッセージ
+        field: エラーが発生したフィールド名
+        value: 無効な値
+    """
+    message: str
+    field: str
+    value: Any
+
+# エラーのスロー
+if len(title) == 0:
+    raise ValidationError(
+        message='タイトルは必須です',
+        field='title',
+        value=title
+    )
+
+# エラーのハンドリング
+try:
+    await task_service.create(data)
+except ValidationError as error:
+    print(f'入力エラー: {error.message}')
+    print(f'フィールド: {error.field}')
 ```
 
 **関連するバリデーション**:

@@ -12,14 +12,14 @@
 ```
 
 **良い例**:
-```typescript
-// ✅ 良い例: 役割が明確
-const userAuthentication = new UserAuthenticationService();
-const taskRepository = new TaskRepository();
+```python
+# ✅ 良い例: 役割が明確
+user_authentication = UserAuthenticationService()
+task_repository = TaskRepository()
 
-// ❌ 悪い例: 曖昧
-const auth = new Service();
-const repo = new Repository();
+# ❌ 悪い例: 曖昧
+auth = Service()
+repo = Repository()
 ```
 
 ### 2. 理由を説明する
@@ -191,58 +191,68 @@ Refs #[番号]
 
 **Given-When-Then パターン**:
 
-```typescript
-describe('TaskService', () => {
-  describe('タスク作成', () => {
-    it('正常なデータの場合、タスクを作成できる', async () => {
-      // Given: 準備
-      const service = new TaskService(mockRepository);
-      const validData = { title: 'テスト' };
+```python
+class TestTaskService:
+    """TaskServiceのテストスイート"""
 
-      // When: 実行
-      const result = await service.create(validData);
+    class TestTaskCreation:
+        """タスク作成のテスト"""
 
-      // Then: 検証
-      expect(result.id).toBeDefined();
-      expect(result.title).toBe('テスト');
-    });
+        async def test_create_with_valid_data(
+            self, mock_repository: TaskRepository
+        ) -> None:
+            """正常なデータの場合、タスクを作成できる"""
+            # Given: 準備
+            service = TaskService(mock_repository)
+            valid_data = {"title": "テスト"}
 
-    it('タイトルが空の場合、ValidationErrorをスローする', async () => {
-      // Given: 準備
-      const service = new TaskService(mockRepository);
-      const invalidData = { title: '' };
+            # When: 実行
+            result = await service.create(valid_data)
 
-      // When/Then: 実行と検証
-      await expect(
-        service.create(invalidData)
-      ).rejects.toThrow(ValidationError);
-    });
-  });
-});
+            # Then: 検証
+            assert result.id is not None
+            assert result.title == "テスト"
+
+        async def test_create_with_empty_title_raises_error(
+            self, mock_repository: TaskRepository
+        ) -> None:
+            """タイトルが空の場合、ValidationErrorを送出する"""
+            # Given: 準備
+            service = TaskService(mock_repository)
+            invalid_data = {"title": ""}
+
+            # When/Then: 実行と検証
+            with pytest.raises(ValidationError):
+                await service.create(invalid_data)
 ```
 
 ### カバレッジ目標
 
 **測定可能な目標**:
 
-```json
-// jest.config.js
-{
-  "coverageThreshold": {
-    "global": {
-      "branches": 80,
-      "functions": 80,
-      "lines": 80,
-      "statements": 80
-    },
-    "./src/services/": {
-      "branches": 90,
-      "functions": 90,
-      "lines": 90,
-      "statements": 90
-    }
-  }
-}
+```toml
+# pyproject.toml
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.paths]
+source = ["src"]
+
+# より厳密なカバレッジ要求領域
+# pytest --cov=src --cov-fail-under=90 tests/unit/services/
 ```
 
 **理由**:
@@ -269,11 +279,11 @@ describe('TaskService', () => {
 
 ## ✅ 良い例
 この実装だと O(n²) の時間計算量になります。
-Map を使うと O(n) に改善できます:
+辞書を使うと O(n) に改善できます:
 
-```typescript
-const taskMap = new Map(tasks.map(t => [t.id, t]));
-const result = ids.map(id => taskMap.get(id));
+```python
+task_map = {task.id: task for task in tasks}
+result = [task_map[task_id] for task_id in ids]
 ```
 ```
 
@@ -323,35 +333,34 @@ const result = ids.map(id => taskMap.get(id));
 **自動化項目と採用ツール**:
 
 1. **Lintチェック**
-   - **ESLint 9.x** + **@typescript-eslint**
-     - TypeScript専用ルールセットでコーディング規約を統一
-     - 潜在的なバグや非推奨パターンを自動検出
-     - 設定ファイル: `eslint.config.js` (Flat Config形式)
+   - **Ruff**
+     - Rust製の高速リンター・フォーマッター
+     - Flake8、isort、pyupgrade等の機能を統合
+     - 設定ファイル: `pyproject.toml`
 
 2. **コードフォーマット**
-   - **Prettier 3.x**
-     - コードスタイルを自動整形し、レビュー時の議論を削減
-     - ESLintと併用し、`eslint-config-prettier`で競合を回避
-     - 設定ファイル: `.prettierrc`
+   - **Black** + **Ruff**
+     - Black: コードスタイルを自動整形し、レビュー時の議論を削減
+     - Ruff: インポート順序整理やコードスタイルチェック
+     - 設定ファイル: `pyproject.toml`
 
 3. **型チェック**
-   - **TypeScript Compiler (tsc) 5.x**
-     - `tsc --noEmit`で型エラーのみをチェック
+   - **Mypy**
+     - `mypy --strict`で厳密な型チェックを実施
      - ビルドとは独立して型安全性を検証
-     - 設定ファイル: `tsconfig.json`
+     - 設定ファイル: `pyproject.toml`
 
 4. **テスト実行**
-   - **Vitest 2.x**
-     - Viteベースで高速起動・実行
-     - TypeScript/ESMをネイティブサポートし、設定不要で動作
-     - カバレッジ測定（@vitest/coverage-v8）が標準搭載
-     - モダンな開発体験とHMR対応
+   - **Pytest**
+     - Python標準のテストフレームワーク
+     - プラグインエコシステムが豊富
+     - カバレッジ測定（pytest-cov）が利用可能
+     - 設定ファイル: `pyproject.toml`
 
-5. **ビルド確認**
-   - **TypeScript Compiler (tsc)**
-     - 標準コンパイラで型チェック付きビルドを保証
-     - 追加ツール不要でシンプルな構成
-     - `tsconfig.json`で出力設定を一元管理
+5. **依存関係管理**
+   - **Poetry** または **pip + pip-tools**
+     - Poetry: 依存関係とパッケージングを一元管理
+     - 設定ファイル: `pyproject.toml`
 
 **実装方法**:
 
@@ -365,40 +374,57 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '24'
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test
-      - run: npm run build
+          python-version: '3.11'
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install dependencies
+        run: poetry install
+      - name: Lint with ruff
+        run: poetry run ruff check .
+      - name: Format check with black
+        run: poetry run black --check .
+      - name: Type check with mypy
+        run: poetry run mypy .
+      - name: Test with pytest
+        run: poetry run pytest --cov --cov-report=xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
 ```
 
-**2. Pre-commit フック (Husky 9.x + lint-staged)**
-```json
-// package.json
-{
-  "scripts": {
-    "prepare": "husky",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "build": "tsc"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
-  }
-}
+**2. Pre-commit フック (pre-commit)**
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
 ```
-```bash
-# .husky/pre-commit
-npm run lint-staged
-npm run typecheck
+
+```toml
+# pyproject.toml
+[tool.poetry.scripts]
+lint = "ruff check ."
+format = "black ."
+typecheck = "mypy ."
+test = "pytest"
 ```
 
 **導入効果**:
@@ -407,7 +433,8 @@ npm run typecheck
 - 早期発見により、修正コストを最大80%削減（バグ検出が本番後の場合と比較）
 
 **この構成を選んだ理由**:
-- 2025年時点でのTypeScriptエコシステムにおける標準的かつモダンな構成
+- 2025年時点でのPythonエコシステムにおける標準的かつモダンな構成
+- Ruffは高速で、複数ツールの機能を統合している
 - ツール間の互換性が高く、設定の衝突が少ない
 - 開発体験と実行速度のバランスが優れている
 

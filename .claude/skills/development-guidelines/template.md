@@ -6,79 +6,114 @@
 
 #### 変数・関数
 
-**TypeScript/JavaScript**:
-```typescript
-// ✅ 良い例
-const userProfileData = fetchUserProfile();
-function calculateTotalPrice(items: CartItem[]): number { }
+**Python**:
+```python
+# ✅ 良い例
+user_profile_data = fetch_user_profile()
+def calculate_total_price(items: list[CartItem]) -> float:
+    ...
 
-// ❌ 悪い例
-const data = fetch();
-function calc(arr: any[]): number { }
+# ❌ 悪い例
+data = fetch()
+def calc(arr: list[Any]) -> float:
+    ...
 ```
 
 **原則**:
-- 変数: camelCase、名詞または名詞句
-- 関数: camelCase、動詞で始める
+- 変数: snake_case、名詞または名詞句
+- 関数: snake_case、動詞で始める
 - 定数: UPPER_SNAKE_CASE
-- Boolean: `is`, `has`, `should`で始める
+- Boolean: `is_`, `has_`, `should_`で始める
+- クラス: PascalCase
 
-#### クラス・インターフェース
+#### クラス・Protocol・型エイリアス
 
-```typescript
-// クラス: PascalCase、名詞
-class TaskManager { }
-class UserAuthenticationService { }
+```python
+from typing import Protocol, Literal, TypeAlias
 
-// インターフェース: PascalCase、I接頭辞またはなし
-interface ITaskRepository { }
-interface Task { }
+# クラス: PascalCase、名詞
+class TaskManager:
+    ...
 
-// 型エイリアス: PascalCase
-type TaskStatus = 'todo' | 'in_progress' | 'completed';
+class UserAuthenticationService:
+    ...
+
+# Protocol: PascalCase (インターフェースの代わり)
+class TaskRepository(Protocol):
+    def save(self, task: Task) -> None:
+        ...
+
+# 型エイリアス: PascalCase
+TaskStatus: TypeAlias = Literal["todo", "in_progress", "completed"]
 ```
 
 ### コードフォーマット
 
-**インデント**: [2スペース/4スペース/タブ]
+**インデント**: 4スペース (PEP 8準拠)
 
-**行の長さ**: 最大[80/100/120]文字
+**行の長さ**: 最大88文字 (Black標準) または 120文字
 
 **例**:
-```typescript
-// [言語] コードフォーマット例
-[コード例]
+```python
+# Black + Ruffによる自動整形例
+from collections.abc import Sequence
+
+
+def process_items(
+    items: Sequence[str],
+    max_length: int = 100,
+    include_metadata: bool = False,
+) -> list[dict[str, str | int]]:
+    """アイテムを処理して辞書のリストを返す。
+
+    Args:
+        items: 処理対象のアイテムリスト
+        max_length: 最大長制限
+        include_metadata: メタデータを含めるか
+
+    Returns:
+        処理済みアイテムの辞書リスト
+    """
+    return [
+        {"value": item[:max_length], "length": len(item)}
+        for item in items
+        if len(item) > 0
+    ]
 ```
 
 ### コメント規約
 
-**関数・クラスのドキュメント**:
-```typescript
-/**
- * タスクの合計数を計算する
- *
- * @param tasks - 計算対象のタスク配列
- * @param filter - フィルター条件(オプション)
- * @returns タスクの合計数
- * @throws {ValidationError} タスク配列が不正な場合
- */
-function countTasks(
-  tasks: Task[],
-  filter?: TaskFilter
-): number {
-  // 実装
-}
+**関数・クラスのドキュメント (Googleスタイル)**:
+```python
+def count_tasks(
+    tasks: Sequence[Task],
+    filter: TaskFilter | None = None,
+) -> int:
+    """タスクの合計数を計算する。
+
+    Args:
+        tasks: 計算対象のタスクシーケンス
+        filter: フィルター条件(オプション)
+
+    Returns:
+        タスクの合計数
+
+    Raises:
+        ValidationError: タスク配列が不正な場合
+    """
+    # 実装
+    pass
 ```
 
 **インラインコメント**:
-```typescript
-// ✅ 良い例: なぜそうするかを説明
-// キャッシュを無効化して、最新データを取得
-cache.clear();
+```python
+# ✅ 良い例: なぜそうするかを説明
+# キャッシュを無効化して、最新データを取得
+cache.clear()
 
-// ❌ 悪い例: 何をしているか(コードを見れば分かる)
-// キャッシュをクリアする
-cache.clear();
+# ❌ 悪い例: 何をしているか(コードを見れば分かる)
+# キャッシュをクリアする
+cache.clear()
 ```
 
 ### エラーハンドリング
@@ -87,33 +122,45 @@ cache.clear();
 - 予期されるエラー: 適切なエラークラスを定義
 - 予期しないエラー: 上位に伝播
 - エラーを無視しない
+- `except Exception:` は避け、具体的な例外型を指定
 
 **例**:
-```typescript
-// エラークラス定義
-class ValidationError extends Error {
-  constructor(
-    message: string,
-    public field: string,
-    public value: unknown
-  ) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+```python
+from dataclasses import dataclass
+from typing import Any
 
-// エラーハンドリング
-try {
-  const task = await taskService.create(data);
-} catch (error) {
-  if (error instanceof ValidationError) {
-    console.error(`検証エラー [${error.field}]: ${error.message}`);
-    // ユーザーにフィードバック
-  } else {
-    console.error('予期しないエラー:', error);
-    throw error; // 上位に伝播
-  }
-}
+
+# エラークラス定義
+@dataclass
+class ValidationError(Exception):
+    """検証エラー"""
+
+    message: str
+    field: str
+    value: Any
+
+    def __str__(self) -> str:
+        return f"検証エラー [{self.field}]: {self.message}"
+
+
+# エラーハンドリング
+async def create_task_with_error_handling(
+    data: dict[str, Any]
+) -> Task:
+    """エラーハンドリングを含むタスク作成"""
+    try:
+        task = await task_service.create(data)
+    except ValidationError as error:
+        # 予期されるエラー: 適切に処理
+        logger.error(str(error))
+        # ユーザーにフィードバック
+        raise
+    except Exception as error:
+        # 予期しないエラー: ログに記録して上位に伝播
+        logger.exception("予期しないエラー: %s", error)
+        raise
+
+    return task
 ```
 
 ## Git運用ルール
@@ -214,32 +261,41 @@ Closes #[Issue番号]
 
 **対象**: 個別の関数・クラス
 
-**カバレッジ目標**: [80/90/100]%
+**カバレッジ目標**: 80%以上 (重要なビジネスロジックは90%以上)
 
 **例**:
-```typescript
-describe('TaskService', () => {
-  describe('create', () => {
-    it('正常なデータでタスクを作成できる', async () => {
-      const service = new TaskService(mockRepository);
-      const task = await service.create({
-        title: 'テストタスク',
-        description: '説明',
-      });
+```python
+import pytest
+from unittest.mock import Mock
 
-      expect(task.id).toBeDefined();
-      expect(task.title).toBe('テストタスク');
-    });
 
-    it('タイトルが空の場合ValidationErrorをスローする', async () => {
-      const service = new TaskService(mockRepository);
+class TestTaskService:
+    """TaskServiceのテストスイート"""
 
-      await expect(
-        service.create({ title: '' })
-      ).rejects.toThrow(ValidationError);
-    });
-  });
-});
+    class TestCreate:
+        """createメソッドのテスト"""
+
+        async def test_create_with_valid_data(
+            self, mock_repository: Mock
+        ) -> None:
+            """正常なデータでタスクを作成できる"""
+            service = TaskService(mock_repository)
+            task = await service.create({
+                "title": "テストタスク",
+                "description": "説明",
+            })
+
+            assert task.id is not None
+            assert task.title == "テストタスク"
+
+        async def test_create_with_empty_title_raises_error(
+            self, mock_repository: Mock
+        ) -> None:
+            """タイトルが空の場合ValidationErrorを送出する"""
+            service = TaskService(mock_repository)
+
+            with pytest.raises(ValidationError):
+                await service.create({"title": ""})
 ```
 
 #### 統合テスト
@@ -247,27 +303,36 @@ describe('TaskService', () => {
 **対象**: 複数コンポーネントの連携
 
 **例**:
-```typescript
-describe('Task CRUD', () => {
-  it('タスクの作成・取得・更新・削除ができる', async () => {
-    // 作成
-    const created = await taskService.create({ title: 'テスト' });
+```python
+import pytest
 
-    // 取得
-    const found = await taskService.findById(created.id);
-    expect(found?.title).toBe('テスト');
 
-    // 更新
-    await taskService.update(created.id, { title: '更新後' });
-    const updated = await taskService.findById(created.id);
-    expect(updated?.title).toBe('更新後');
+@pytest.mark.integration
+class TestTaskCRUD:
+    """タスクCRUD操作の統合テスト"""
 
-    // 削除
-    await taskService.delete(created.id);
-    const deleted = await taskService.findById(created.id);
-    expect(deleted).toBeNull();
-  });
-});
+    async def test_full_crud_operations(
+        self, task_service: TaskService
+    ) -> None:
+        """タスクの作成・取得・更新・削除ができる"""
+        # 作成
+        created = await task_service.create({"title": "テスト"})
+
+        # 取得
+        found = await task_service.find_by_id(created.id)
+        assert found is not None
+        assert found.title == "テスト"
+
+        # 更新
+        await task_service.update(created.id, {"title": "更新後"})
+        updated = await task_service.find_by_id(created.id)
+        assert updated is not None
+        assert updated.title == "更新後"
+
+        # 削除
+        await task_service.delete(created.id)
+        deleted = await task_service.find_by_id(created.id)
+        assert deleted is None
 ```
 
 #### E2Eテスト
@@ -275,39 +340,60 @@ describe('Task CRUD', () => {
 **対象**: ユーザーシナリオ全体
 
 **例**:
-```typescript
-describe('タスク管理フロー', () => {
-  it('ユーザーがタスクを追加して完了できる', async () => {
-    // タスク追加
-    await cli.run(['add', '新しいタスク']);
-    expect(output).toContain('タスクを追加しました');
+```python
+import pytest
+from click.testing import CliRunner
 
-    // タスク一覧表示
-    await cli.run(['list']);
-    expect(output).toContain('新しいタスク');
 
-    // タスク完了
-    await cli.run(['complete', '1']);
-    expect(output).toContain('タスクを完了しました');
-  });
-});
+@pytest.mark.e2e
+class TestTaskManagementFlow:
+    """タスク管理フローのE2Eテスト"""
+
+    def test_user_can_add_and_complete_task(
+        self, cli_runner: CliRunner
+    ) -> None:
+        """ユーザーがタスクを追加して完了できる"""
+        # タスク追加
+        result = cli_runner.invoke(cli, ["add", "新しいタスク"])
+        assert result.exit_code == 0
+        assert "タスクを追加しました" in result.output
+
+        # タスク一覧表示
+        result = cli_runner.invoke(cli, ["list"])
+        assert result.exit_code == 0
+        assert "新しいタスク" in result.output
+
+        # タスク完了
+        result = cli_runner.invoke(cli, ["complete", "1"])
+        assert result.exit_code == 0
+        assert "タスクを完了しました" in result.output
 ```
 
 ### テスト命名規則
 
-**パターン**: `[対象]_[条件]_[期待結果]`
+**パターン**: `test_[対象]_[条件]_[期待結果]`
 
 **例**:
-```typescript
-// ✅ 良い例
-it('create_emptyTitle_throwsValidationError', () => { });
-it('findById_existingId_returnsTask', () => { });
-it('delete_nonExistentId_throwsNotFoundError', () => { });
+```python
+# ✅ 良い例
+def test_create_empty_title_raises_validation_error() -> None:
+    ...
 
-// ❌ 悪い例
-it('test1', () => { });
-it('works', () => { });
-it('should work correctly', () => { });
+def test_find_by_id_existing_id_returns_task() -> None:
+    ...
+
+def test_delete_non_existent_id_raises_not_found_error() -> None:
+    ...
+
+# ❌ 悪い例
+def test_1() -> None:
+    ...
+
+def test_works() -> None:
+    ...
+
+def test_should_work_correctly() -> None:
+    ...
 ```
 
 ### モック・スタブの使用
@@ -317,17 +403,36 @@ it('should work correctly', () => { });
 - ビジネスロジックは実装を使用
 
 **例**:
-```typescript
-// リポジトリをモック化
-const mockRepository: ITaskRepository = {
-  save: jest.fn(),
-  findById: jest.fn(),
-  findAll: jest.fn(),
-  delete: jest.fn(),
-};
+```python
+import pytest
+from unittest.mock import Mock, AsyncMock
+from typing import Protocol
 
-// サービスは実際の実装を使用
-const service = new TaskService(mockRepository);
+
+# リポジトリのProtocol定義
+class TaskRepository(Protocol):
+    async def save(self, task: Task) -> None: ...
+    async def find_by_id(self, task_id: int) -> Task | None: ...
+    async def find_all(self) -> list[Task]: ...
+    async def delete(self, task_id: int) -> None: ...
+
+
+# Fixture でモックを提供
+@pytest.fixture
+def mock_repository() -> Mock:
+    """モック化されたリポジトリ"""
+    mock = AsyncMock(spec=TaskRepository)
+    mock.save.return_value = None
+    mock.find_by_id.return_value = None
+    mock.find_all.return_value = []
+    mock.delete.return_value = None
+    return mock
+
+
+# サービスは実際の実装を使用
+def test_service_with_mock(mock_repository: Mock) -> None:
+    service = TaskService(mock_repository)
+    # テスト実装
 ```
 
 ## コードレビュー基準
