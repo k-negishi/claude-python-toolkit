@@ -66,27 +66,36 @@
 **Lambda関数をローカルで実行する方法:**
 
 ```bash
-# 1. SAM build（依存関係をビルド）
-sam build
+# 1. .envファイルが正しく設定されていることを確認
+cat .env
 
-# 2. ローカル実行（dry_runモード）
-sam local invoke NewsletterFunction --event events/dry_run.json
+# 2. Lambda関数を実行
+# 方法A: シェルスクリプトで実行（最も簡単）
+./run_local.sh  # 対話的にモードを選択
 
-# 注意: Bedrock（LLM）とSES（メール送信）は実際のAWSサービスにアクセスします
-# - AWS認証情報が必要（~/.aws/credentials）
-# - dry_runモードでもLLM判定は実行される（コストが発生）
+# 方法B: Pythonスクリプトで直接実行
+.venv/bin/python test_lambda_local.py              # 本番モード
+.venv/bin/python test_lambda_local.py --dry-run    # dry_runモード
+
+# 方法C: SAM CLI（Docker環境による制約あり）
+# sam build && sam local invoke NewsletterFunction --event events/production.json
+# 注意: macOS環境ではDockerマウントエラーが発生する場合があります
 ```
 
-**イベントファイル例** (`events/dry_run.json`):
-```json
-{
-  "dry_run": true
-}
-```
+**実行モード:**
+- `test_lambda_local.py`: 本番モード（dry_run=false、メール送信あり）
+- dry_runモードで実行したい場合は、スクリプト内の`event = {"dry_run": False}`を`True`に変更
 
-**通常実行（dry_run=false）の場合:**
-- LLM判定を実行し、実際にメールを送信します
+**注意事項:**
+- Bedrock（LLM）とSES（メール送信）は実際のAWSサービスにアクセスします
+- AWS認証情報が必要（~/.aws/credentials）
+- LLM判定は実行される（コストが発生: 約14円/30記事）
 - SESで送信元メールアドレスが検証済みである必要があります
+
+**実行結果の確認:**
+- 実行完了後、`final_selected_count`が0でない場合は成功
+- メールが送信先アドレスに届いていることを確認
+- ThrottlingExceptionが一部発生しても、成功した記事で処理は継続されます
 
 #### ステアリングファイル管理
 

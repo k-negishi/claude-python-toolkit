@@ -45,7 +45,7 @@ class LlmJudge:
         self,
         bedrock_client: Any,
         cache_repository: CacheRepository | None,
-        model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model_id: str,
         max_retries: int = 2,
         concurrency_limit: int = 5,
     ) -> None:

@@ -61,7 +61,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         # dynamodb = boto3.resource("dynamodb")
         # cache_repository = CacheRepository(dynamodb, config.dynamodb_cache_table)
         # history_repository = HistoryRepository(dynamodb, config.dynamodb_history_table)
-        bedrock_runtime = boto3.client("bedrock-runtime")
+        bedrock_runtime = boto3.client("bedrock-runtime", region_name=config.bedrock_region)
         ses = boto3.client("ses")
 
         # リポジトリ初期化
