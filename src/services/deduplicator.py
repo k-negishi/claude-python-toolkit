@@ -33,11 +33,11 @@ class Deduplicator:
         _cache_repository: キャッシュリポジトリ
     """
 
-    def __init__(self, cache_repository: CacheRepository) -> None:
+    def __init__(self, cache_repository: CacheRepository | None) -> None:
         """重複排除サービスを初期化する.
 
         Args:
-            cache_repository: キャッシュリポジトリ
+            cache_repository: キャッシュリポジトリ（Noneの場合はキャッシュチェックをスキップ）
         """
         self._cache_repository = cache_repository
 
@@ -82,7 +82,13 @@ class Deduplicator:
         # ステップ2: キャッシュ済み記事の除外
         # 一括でキャッシュ存在チェック
         urls_to_check = [article.url for article in url_unique_articles]
-        cache_results = self._cache_repository.batch_exists(urls_to_check)
+        if self._cache_repository is not None:
+            cache_results = self._cache_repository.batch_exists(urls_to_check)
+        else:
+            logger.info(
+                "cache_check_skipped", message="CacheRepository is None, skipping cache check"
+            )
+            cache_results = {}  # 空辞書: 全記事がキャッシュヒットしていないとみなす
 
         final_articles: list[Article] = []
         cached_count = 0

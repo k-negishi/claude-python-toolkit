@@ -44,7 +44,7 @@ class LlmJudge:
     def __init__(
         self,
         bedrock_client: Any,
-        cache_repository: CacheRepository,
+        cache_repository: CacheRepository | None,
         model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
         max_retries: int = 2,
         concurrency_limit: int = 5,
@@ -111,13 +111,18 @@ class LlmJudge:
             elif isinstance(result, JudgmentResult):
                 judgments.append(result)
                 # キャッシュに保存
-                try:
-                    self._cache_repository.put(result)
-                except Exception as e:
-                    logger.error(
-                        "cache_put_failed",
-                        url=article.url,
-                        error=str(e),
+                if self._cache_repository is not None:
+                    try:
+                        self._cache_repository.put(result)
+                    except Exception as e:
+                        logger.error(
+                            "cache_put_failed",
+                            url=article.url,
+                            error=str(e),
+                        )
+                else:
+                    logger.debug(
+                        "cache_put_skipped", url=article.url, message="CacheRepository is None"
                     )
 
         logger.info(
@@ -170,6 +175,8 @@ class LlmJudge:
                 # JudgmentResult作成
                 judgment = JudgmentResult(
                     url=article.url,
+                    title=article.title,
+                    description=article.description,
                     interest_label=InterestLabel(judgment_data["interest_label"]),
                     buzz_label=BuzzLabel(judgment_data["buzz_label"]),
                     confidence=float(judgment_data["confidence"]),
@@ -314,6 +321,8 @@ JSON以外は出力しないでください。"""
         """
         return JudgmentResult(
             url=article.url,
+            title=article.title,
+            description=article.description,
             interest_label=InterestLabel.IGNORE,
             buzz_label=BuzzLabel.LOW,
             confidence=0.0,

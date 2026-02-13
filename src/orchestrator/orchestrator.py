@@ -1,7 +1,7 @@
 """オーケストレーターモジュール."""
 
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 
 from src.models.execution_summary import ExecutionSummary
@@ -68,8 +68,8 @@ class Orchestrator:
     def __init__(
         self,
         source_master: SourceMaster,
-        cache_repository: CacheRepository,
-        history_repository: HistoryRepository,
+        cache_repository: CacheRepository | None,
+        history_repository: HistoryRepository | None,
         collector: Collector,
         normalizer: Normalizer,
         deduplicator: Deduplicator,
@@ -238,7 +238,10 @@ class Orchestrator:
                 estimated_cost_usd=estimated_cost,
             )
 
-            self._history_repository.save(summary)
+            # TODO(MVP): DynamoDB未セットアップのため一時的にコメントアウト
+            # self._history_repository.save(summary)
+            # MVPフェーズではログ出力のみ（DynamoDB未使用）
+            logger.info("execution_summary", **asdict(summary))
             logger.info("step8_complete", run_id=run_id)
 
             logger.info(

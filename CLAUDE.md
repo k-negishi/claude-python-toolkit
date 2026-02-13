@@ -37,6 +37,57 @@
 3. Grepで既存の類似実装を検索
 4. 既存パターンを理解してから実装開始
 
+#### 品質チェック（必須）
+
+**コード変更後は必ず以下のコマンドを実行すること:**
+
+```bash
+# 1. テスト実行
+.venv/bin/pytest tests/ -v
+
+# 2. リントチェック
+.venv/bin/ruff check src/
+
+# 3. コードフォーマット
+.venv/bin/ruff format src/
+
+# 4. 型チェック
+.venv/bin/mypy src/
+```
+
+**全てのチェックがパスするまで実装は完了とみなさない。**
+
+- ruff: `All checks passed!` を確認
+- mypy: `Success: no issues found` を確認
+- pytest: 今回の変更に関連するテストが全てパスすることを確認
+
+#### ローカル実行（動作確認）
+
+**Lambda関数をローカルで実行する方法:**
+
+```bash
+# 1. SAM build（依存関係をビルド）
+sam build
+
+# 2. ローカル実行（dry_runモード）
+sam local invoke NewsletterFunction --event events/dry_run.json
+
+# 注意: Bedrock（LLM）とSES（メール送信）は実際のAWSサービスにアクセスします
+# - AWS認証情報が必要（~/.aws/credentials）
+# - dry_runモードでもLLM判定は実行される（コストが発生）
+```
+
+**イベントファイル例** (`events/dry_run.json`):
+```json
+{
+  "dry_run": true
+}
+```
+
+**通常実行（dry_run=false）の場合:**
+- LLM判定を実行し、実際にメールを送信します
+- SESで送信元メールアドレスが検証済みである必要があります
+
 #### ステアリングファイル管理
 
 作業ごとに `.steering/[YYYYMMDD]-[タスク名]/` を作成:

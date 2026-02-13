@@ -9,8 +9,6 @@ from typing import Any
 import boto3
 
 from src.orchestrator.orchestrator import Orchestrator
-from src.repositories.cache_repository import CacheRepository
-from src.repositories.history_repository import HistoryRepository
 from src.repositories.source_master import SourceMaster
 from src.services.buzz_scorer import BuzzScorer
 from src.services.candidate_selector import CandidateSelector
@@ -50,8 +48,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         logger.info("event_parsed", dry_run=dry_run)
 
         # 環境変数取得
-        cache_table_name = os.environ.get("CACHE_TABLE_NAME", "ai-curated-newsletter-cache")
-        history_table_name = os.environ.get("HISTORY_TABLE_NAME", "ai-curated-newsletter-history")
+        # TODO(MVP): DynamoDB未セットアップのため一時的にコメントアウト
+        # Phase 2で有効化: DynamoDBテーブル作成後に以下を復元
+        # cache_table_name = os.environ.get("CACHE_TABLE_NAME", "ai-curated-newsletter-cache")
+        # history_table_name = os.environ.get("HISTORY_TABLE_NAME", "ai-curated-newsletter-history")
         sources_config_path = os.environ.get("SOURCES_CONFIG_PATH", "config/sources.json")
         from_email = os.environ.get("FROM_EMAIL", "noreply@example.com")
         to_email = os.environ.get("TO_EMAIL", "recipient@example.com")
@@ -60,14 +60,19 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         )
 
         # AWS クライアント初期化
-        dynamodb = boto3.resource("dynamodb")
+        # TODO(MVP): DynamoDB未セットアップのため一時的にコメントアウト
+        # dynamodb = boto3.resource("dynamodb")
         bedrock_runtime = boto3.client("bedrock-runtime")
         ses = boto3.client("ses")
 
         # リポジトリ初期化
         source_master = SourceMaster(sources_config_path)
-        cache_repository = CacheRepository(dynamodb, cache_table_name)
-        history_repository = HistoryRepository(dynamodb, history_table_name)
+        # TODO(MVP): DynamoDB未セットアップのため一時的にコメントアウト
+        # Phase 2で有効化: 以下の2行を復元し、Noneの代入を削除
+        # cache_repository = CacheRepository(dynamodb, cache_table_name)
+        # history_repository = HistoryRepository(dynamodb, history_table_name)
+        cache_repository = None  # MVPフェーズではキャッシュ機能を無効化
+        history_repository = None  # MVPフェーズでは履歴保存機能を無効化
 
         # サービス初期化
         collector = Collector(source_master)
