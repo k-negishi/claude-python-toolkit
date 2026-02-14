@@ -76,7 +76,8 @@ cp .env.example .env
 ```bash
 # 本番モード（メール送信あり）
 .venv/bin/python test_lambda_local.py
-
+```
+```bash
 # dry_run モード（メール送信なし、LLM判定は実行）
 .venv/bin/python test_lambda_local.py --dry-run
 ```

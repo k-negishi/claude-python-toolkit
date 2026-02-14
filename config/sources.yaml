@@ -1,12 +1,12 @@
 sources:
-  - source_id: hacker_news
-    name: Hacker News
-    feed_url: https://news.ycombinator.com/rss
-    feed_type: rss
-    priority: high
-    timeout_seconds: 15
-    retry_count: 3
-    enabled: true
+#  - source_id: hacker_news
+#    name: Hacker News
+#    feed_url: https://news.ycombinator.com/rss
+#    feed_type: rss
+#    priority: high
+#    timeout_seconds: 15
+#    retry_count: 3
+#    enabled: true
 
   - source_id: hatena_bookmark_tech
     name: はてなブックマーク（テクノロジー）
@@ -35,11 +35,11 @@ sources:
     retry_count: 2
     enabled: true
 
-  - source_id: aws_blog
-    name: AWS Blog
-    feed_url: https://aws.amazon.com/blogs/aws/feed/
-    feed_type: rss
-    priority: high
-    timeout_seconds: 15
-    retry_count: 3
-    enabled: true
+#  - source_id: aws_blog
+#    name: AWS Blog
+#    feed_url: https://aws.amazon.com/blogs/aws/feed/
+#    feed_type: rss
+#    priority: high
+#    timeout_seconds: 15
+#    retry_count: 3
+#    enabled: true
