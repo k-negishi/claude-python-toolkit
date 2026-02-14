@@ -19,7 +19,16 @@ ai-curated-newsletter/
 │   │   ├── llm_judge.py      # LLM判定
 │   │   ├── final_selector.py # 最終選定
 │   │   ├── formatter.py      # メール本文生成
-│   │   └── notifier.py       # メール送信
+│   │   ├── notifier.py       # メール送信
+│   │   └── social_proof/     # ソーシャルプルーフ取得サブパッケージ
+│   │       ├── __init__.py
+│   │       ├── hatena_count_fetcher.py          # はてなブックマーク数取得
+│   │       ├── qiita_rank_fetcher.py            # Qiitaランク取得
+│   │       ├── yamadashy_signal_fetcher.py      # yamadashy シグナル取得
+│   │       ├── zenn_like_fetcher.py             # Zennいいね数取得
+│   │       ├── multi_source_social_proof_fetcher.py  # 複数ソース統合
+│   │       ├── social_proof_fetcher.py          # 基底クラス
+│   │       └── external_service_policy.py       # 外部サービスポリシー
 │   ├── repositories/         # データレイヤー（データ永続化）
 │   │   ├── __init__.py
 │   │   ├── cache_repository.py    # 判定キャッシュ（DynamoDB）

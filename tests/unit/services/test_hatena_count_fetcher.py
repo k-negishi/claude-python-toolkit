@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
-from src.services.hatena_count_fetcher import HatenaCountFetcher
+from src.services.social_proof.hatena_count_fetcher import HatenaCountFetcher
 
 
 class TestHatenaCountFetcher:
@@ -133,7 +133,9 @@ class TestHatenaCountFetcher:
         fetcher = HatenaCountFetcher()
 
         # _policyがExternalServicePolicyのインスタンスであることを確認
-        from src.services.external_service_policy import ExternalServicePolicy
+        from src.services.social_proof.external_service_policy import (
+            ExternalServicePolicy,
+        )
         assert isinstance(fetcher._policy, ExternalServicePolicy)
 
     @pytest.mark.asyncio

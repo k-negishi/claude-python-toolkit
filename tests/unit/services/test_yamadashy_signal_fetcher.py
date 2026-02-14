@@ -4,7 +4,9 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
-from src.services.yamadashy_signal_fetcher import YamadashySignalFetcher
+from src.services.social_proof.yamadashy_signal_fetcher import (
+    YamadashySignalFetcher,
+)
 
 
 class TestYamadashySignalFetcher:
@@ -99,7 +101,9 @@ class TestYamadashySignalFetcher:
         fetcher = YamadashySignalFetcher()
 
         # _policyがExternalServicePolicyのインスタンスであることを確認
-        from src.services.external_service_policy import ExternalServicePolicy
+        from src.services.social_proof.external_service_policy import (
+            ExternalServicePolicy,
+        )
         assert isinstance(fetcher._policy, ExternalServicePolicy)
 
     @pytest.mark.asyncio

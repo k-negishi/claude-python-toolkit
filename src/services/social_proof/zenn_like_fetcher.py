@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from src.services.external_service_policy import ExternalServicePolicy
+from src.services.social_proof.external_service_policy import ExternalServicePolicy
 from src.shared.logging.logger import get_logger
 
 logger = get_logger(__name__)

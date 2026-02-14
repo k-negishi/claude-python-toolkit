@@ -7,7 +7,9 @@ from src.models.buzz_score import BuzzScore
 from src.models.interest_profile import InterestProfile
 from src.models.source_config import AuthorityLevel
 from src.repositories.source_master import SourceMaster
-from src.services.multi_source_social_proof_fetcher import MultiSourceSocialProofFetcher
+from src.services.social_proof.multi_source_social_proof_fetcher import (
+    MultiSourceSocialProofFetcher,
+)
 from src.shared.logging.logger import get_logger
 from src.shared.utils.date_utils import now_utc
 
@@ -74,7 +76,7 @@ class BuzzScorer:
         for article in articles:
             recency_score = self._calculate_recency_score(article)
             consensus_score = self._calculate_consensus_score(article.normalized_url, url_counts)
-            social_proof_score = social_proof_scores.get(article.url, 40.0)  # デフォルト40.0
+            social_proof_score = social_proof_scores.get(article.url, 20.0)  # デフォルト20.0
             interest_score = self._calculate_interest_score(article)
             authority_score = self._calculate_authority_score(article.source_name)
 

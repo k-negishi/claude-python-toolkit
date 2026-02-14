@@ -17,9 +17,11 @@ from src.services.deduplicator import Deduplicator
 from src.services.final_selector import FinalSelector
 from src.services.formatter import Formatter
 from src.services.llm_judge import LlmJudge
-from src.services.multi_source_social_proof_fetcher import MultiSourceSocialProofFetcher
 from src.services.normalizer import Normalizer
 from src.services.notifier import Notifier
+from src.services.social_proof.multi_source_social_proof_fetcher import (
+    MultiSourceSocialProofFetcher,
+)
 from src.shared.config import load_config
 from src.shared.logging.logger import configure_logging, get_logger
 from src.shared.utils.date_utils import now_utc

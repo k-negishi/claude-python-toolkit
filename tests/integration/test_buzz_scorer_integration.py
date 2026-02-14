@@ -10,7 +10,9 @@ from src.models.article import Article
 from src.repositories.interest_master import InterestMaster
 from src.repositories.source_master import SourceMaster
 from src.services.buzz_scorer import BuzzScorer
-from src.services.multi_source_social_proof_fetcher import MultiSourceSocialProofFetcher
+from src.services.social_proof.multi_source_social_proof_fetcher import (
+    MultiSourceSocialProofFetcher,
+)
 
 
 class TestBuzzScorerIntegration:

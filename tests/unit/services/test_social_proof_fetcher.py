@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
-from src.services.social_proof_fetcher import SocialProofFetcher
+from src.services.social_proof.social_proof_fetcher import SocialProofFetcher
 
 
 class TestSocialProofFetcher:

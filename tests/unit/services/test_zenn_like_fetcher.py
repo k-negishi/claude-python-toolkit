@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
-from src.services.zenn_like_fetcher import ZennLikeFetcher
+from src.services.social_proof.zenn_like_fetcher import ZennLikeFetcher
 
 
 class TestZennLikeFetcher:
@@ -222,7 +222,9 @@ class TestZennLikeFetcher:
         fetcher = ZennLikeFetcher()
 
         # _policyがExternalServicePolicyのインスタンスであることを確認
-        from src.services.external_service_policy import ExternalServicePolicy
+        from src.services.social_proof.external_service_policy import (
+            ExternalServicePolicy,
+        )
         assert isinstance(fetcher._policy, ExternalServicePolicy)
 
     @pytest.mark.asyncio

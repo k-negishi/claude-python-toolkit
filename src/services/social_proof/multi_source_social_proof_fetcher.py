@@ -3,10 +3,10 @@
 import asyncio
 
 from src.models.article import Article
-from src.services.hatena_count_fetcher import HatenaCountFetcher
-from src.services.qiita_rank_fetcher import QiitaRankFetcher
-from src.services.yamadashy_signal_fetcher import YamadashySignalFetcher
-from src.services.zenn_like_fetcher import ZennLikeFetcher
+from src.services.social_proof.hatena_count_fetcher import HatenaCountFetcher
+from src.services.social_proof.qiita_rank_fetcher import QiitaRankFetcher
+from src.services.social_proof.yamadashy_signal_fetcher import YamadashySignalFetcher
+from src.services.social_proof.zenn_like_fetcher import ZennLikeFetcher
 from src.shared.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -18,11 +18,11 @@ class MultiSourceSocialProofFetcher:
     4つの情報源（yamadashy, Hatena, Zenn, Qiita）からスコアを取得し、
     重み付け統合を行う。
 
-    統合計算式: S = (0.20Y + 0.45H + 0.25Z + 0.10Q) / sum(observed_weights)
+    統合計算式: S = (0.05Y + 0.45H + 0.35Z + 0.15Q) / 1.0
 
-    欠損対応:
-    - 欠損した指標は分母から除外
-    - 全欠損時は S=40（デフォルト値）
+    スコア0の扱い:
+    - スコア0も正しくデータとして扱う（欠損と区別）
+    - 全ての指標を統合計算に含める
 
     Attributes:
         _yamadashy_fetcher: yamadashy掲載シグナル取得
@@ -32,13 +32,13 @@ class MultiSourceSocialProofFetcher:
     """
 
     # 各指標の重み
-    WEIGHT_YAMADASHY = 0.20
+    WEIGHT_YAMADASHY = 0.05
     WEIGHT_HATENA = 0.45
-    WEIGHT_ZENN = 0.25
-    WEIGHT_QIITA = 0.10
+    WEIGHT_ZENN = 0.35
+    WEIGHT_QIITA = 0.15
 
     # デフォルトスコア（全欠損時）
-    DEFAULT_SCORE = 40.0
+    DEFAULT_SCORE = 20.0
 
     def __init__(
         self,
@@ -146,32 +146,19 @@ class MultiSourceSocialProofFetcher:
             z = zenn_scores.get(url, 0.0)
             q = qiita_scores.get(url, 0.0)
 
-            # 欠損していない指標の重みを集計
-            observed_weights = 0.0
-            weighted_sum = 0.0
-
-            if y > 0:
-                observed_weights += self.WEIGHT_YAMADASHY
-                weighted_sum += self.WEIGHT_YAMADASHY * y
-
-            if h > 0:
-                observed_weights += self.WEIGHT_HATENA
-                weighted_sum += self.WEIGHT_HATENA * h
-
-            if z > 0:
-                observed_weights += self.WEIGHT_ZENN
-                weighted_sum += self.WEIGHT_ZENN * z
-
-            if q > 0:
-                observed_weights += self.WEIGHT_QIITA
-                weighted_sum += self.WEIGHT_QIITA * q
+            # 全ての指標を統合計算に含める（スコア0も正しく扱う）
+            observed_weights = (
+                self.WEIGHT_YAMADASHY + self.WEIGHT_HATENA + self.WEIGHT_ZENN + self.WEIGHT_QIITA
+            )
+            weighted_sum = (
+                self.WEIGHT_YAMADASHY * y
+                + self.WEIGHT_HATENA * h
+                + self.WEIGHT_ZENN * z
+                + self.WEIGHT_QIITA * q
+            )
 
             # 統合スコア計算
-            if observed_weights > 0:
-                score = weighted_sum / observed_weights
-            else:
-                # 全欠損時はデフォルトスコア
-                score = self.DEFAULT_SCORE
+            score = weighted_sum / observed_weights
 
             integrated_scores[url] = score
 
