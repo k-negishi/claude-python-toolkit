@@ -27,8 +27,8 @@ argument-hint: 機能名 または GitHub issue URL
    - 引数をそのまま `/plan` に渡す
    - `/plan` は以下を実行:
      - issue URL の場合は内容を取得
-     - ステアリングディレクトリを作成
      - プロジェクト理解と既存パターン調査
+     - ステアリングディレクトリと3ファイルを作成
      - ステアリングファイル (requirements.md, design.md, tasklist.md) を生成
 
 3. **ステアリングディレクトリパスを取得:**
