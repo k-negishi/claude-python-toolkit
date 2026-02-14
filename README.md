@@ -20,7 +20,7 @@
 
 ## 技術スタック
 
-- Python 3.12
+- Python 3.14
 - AWS Lambda / EventBridge / Bedrock / SES / DynamoDB
 - AWS SAM
 - pytest / mypy / ruff
@@ -48,7 +48,7 @@ EventBridge (火・金 09:00 UTC)
 
 ### 前提条件
 
-- Python 3.12+
+- Python 3.14+
 - `uv`
 - AWS 認証情報（`aws configure` など）
 - （SAM ローカル実行/デプロイ時のみ）AWS SAM CLI
@@ -77,6 +77,19 @@ LLM 判定候補件数の運用目安:
   - Claude 3.5 Sonnet v2 単価: input `$6/1M`、output `$30/1M`
   - 1記事あたり平均トークン: input `900`、output `140`
   - 120件実行時の推定: 約 `$1.15/回`（週2回運用で約 `$9.22/月`）
+
+Bedrock リトライ設定（ThrottlingException 対策）:
+
+- `BEDROCK_MAX_PARALLEL=2`: 並列実行数（デフォルト: 5 → 推奨: 2）
+- `BEDROCK_REQUEST_INTERVAL=2.5`: 並列リクエスト間隔（秒、デフォルト: 2.5）
+- `BEDROCK_RETRY_BASE_DELAY=2.0`: リトライ基本遅延時間（秒、デフォルト: 2.0）
+- `BEDROCK_MAX_BACKOFF=20.0`: 最大バックオフ時間（秒、デフォルト: 20.0）
+- `BEDROCK_MAX_RETRIES=4`: 最大リトライ回数（デフォルト: 4）
+
+リトライ機能の詳細:
+- ThrottlingException と ServiceUnavailableException を自動リトライ
+- 指数バックオフ + ジッター（最大50%）を使用して、リトライ間隔を分散
+- Lambda タイムアウト（900秒 = 15分）内で完了するように調整
 
 ## ローカル実行
 
@@ -115,6 +128,37 @@ sam local invoke NewsletterFunction --event events/production.json
 ```
 
 ## デプロイ（AWS SAM）
+
+### `.env` を SSM に同期してデプロイ（推奨）
+
+```bash
+chmod +x scripts/sam-deploy.sh
+./scripts/sam-deploy.sh
+```
+
+このスクリプトは以下を自動で実行します。
+
+- `.env` を読み込む
+- `.env` 全文を `/ai-curated-newsletter/dotenv` として SecureString 登録（上書き）
+- `sam build`
+- `sam deploy`
+
+#### スクリプト設定のまとめ
+
+- `ENV_FILE`: 読み込む環境ファイル（デフォルト: `.env`）
+- `SSM_DOTENV_PARAMETER`: SSM パラメータ名（デフォルト: `/ai-curated-newsletter/dotenv`）
+- `AWS_REGION`: 利用リージョン（デフォルト: `ap-northeast-1`）
+- `STACK_NAME`: デプロイ対象スタック名（デフォルト: `ai-curated-newsletter`）
+- `SAM_CONFIG_FILE`: SAM 設定ファイル（デフォルト: `samconfig.toml` があれば利用）
+- `SAM_CONFIG_ENV`: SAM 設定の環境名（デフォルト: `default`）
+- `SAM_S3_BUCKET`: デプロイアーティファクト保存先バケット名（未指定時は `--resolve-s3` を自動利用）
+
+#### 実行フローのまとめ
+
+1. `.env` を読み込み、環境変数として展開
+2. `.env` 全文を SSM Parameter Store (`SecureString`) に1件登録
+3. `sam build` を実行
+4. `sam deploy` を実行（`FromEmail` / `ToEmail` をパラメータで注入、S3 設定が無ければ `--resolve-s3` を自動付与）
 
 ### 初回
 

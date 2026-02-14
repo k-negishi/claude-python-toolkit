@@ -30,6 +30,10 @@ class AppConfig:
         bedrock_inference_profile_arn: Bedrock インファレンスプロファイルARN (オプション)
         bedrock_region: Bedrock リージョン
         bedrock_max_parallel: Bedrock 並列実行数
+        bedrock_request_interval: 並列リクエスト間隔（秒）
+        bedrock_retry_base_delay: リトライ基本遅延時間（秒）
+        bedrock_max_backoff: 最大バックオフ時間（秒）
+        bedrock_max_retries: 最大リトライ回数
         llm_candidate_max: LLM 候補記事数上限
         final_select_max: 最終選抜記事数上限
         final_select_max_per_domain: ドメイン当たりの最終選抜記事数上限
@@ -47,6 +51,10 @@ class AppConfig:
     bedrock_inference_profile_arn: str
     bedrock_region: str
     bedrock_max_parallel: int
+    bedrock_request_interval: float
+    bedrock_retry_base_delay: float
+    bedrock_max_backoff: float
+    bedrock_max_retries: int
     llm_candidate_max: int
     final_select_max: int
     final_select_max_per_domain: int
@@ -109,6 +117,10 @@ def _load_config_local() -> AppConfig:
             bedrock_inference_profile_arn=os.getenv("BEDROCK_INFERENCE_PROFILE_ARN", ""),
             bedrock_region=os.getenv("BEDROCK_REGION", "ap-northeast-1"),
             bedrock_max_parallel=int(os.getenv("BEDROCK_MAX_PARALLEL", "5")),
+            bedrock_request_interval=float(os.getenv("BEDROCK_REQUEST_INTERVAL", "2.5")),
+            bedrock_retry_base_delay=float(os.getenv("BEDROCK_RETRY_BASE_DELAY", "2.0")),
+            bedrock_max_backoff=float(os.getenv("BEDROCK_MAX_BACKOFF", "20.0")),
+            bedrock_max_retries=int(os.getenv("BEDROCK_MAX_RETRIES", "4")),
             llm_candidate_max=int(os.getenv("LLM_CANDIDATE_MAX", "150")),
             final_select_max=int(os.getenv("FINAL_SELECT_MAX", "15")),
             final_select_max_per_domain=int(os.getenv("FINAL_SELECT_MAX_PER_DOMAIN", "4")),
@@ -195,6 +207,14 @@ def _load_config_from_ssm() -> AppConfig:
             ),
             bedrock_region=dotenv_values_dict.get("BEDROCK_REGION", aws_region),
             bedrock_max_parallel=int(dotenv_values_dict["BEDROCK_MAX_PARALLEL"]),
+            bedrock_request_interval=float(
+                dotenv_values_dict.get("BEDROCK_REQUEST_INTERVAL", "2.5")
+            ),
+            bedrock_retry_base_delay=float(
+                dotenv_values_dict.get("BEDROCK_RETRY_BASE_DELAY", "2.0")
+            ),
+            bedrock_max_backoff=float(dotenv_values_dict.get("BEDROCK_MAX_BACKOFF", "20.0")),
+            bedrock_max_retries=int(dotenv_values_dict.get("BEDROCK_MAX_RETRIES", "4")),
             llm_candidate_max=int(dotenv_values_dict["LLM_CANDIDATE_MAX"]),
             final_select_max=int(dotenv_values_dict["FINAL_SELECT_MAX"]),
             final_select_max_per_domain=int(dotenv_values_dict["FINAL_SELECT_MAX_PER_DOMAIN"]),

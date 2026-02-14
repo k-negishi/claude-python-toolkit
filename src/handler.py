@@ -90,6 +90,11 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             interest_profile=interest_profile,
             model_id=config.bedrock_model_id,
             inference_profile_arn=config.bedrock_inference_profile_arn,
+            max_retries=config.bedrock_max_retries,
+            concurrency_limit=config.bedrock_max_parallel,
+            request_interval=config.bedrock_request_interval,
+            retry_base_delay=config.bedrock_retry_base_delay,
+            max_backoff=config.bedrock_max_backoff,
         )
         final_selector = FinalSelector(
             max_articles=config.final_select_max,
