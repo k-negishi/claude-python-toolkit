@@ -19,6 +19,7 @@ from src.services.formatter import Formatter
 from src.services.llm_judge import LlmJudge
 from src.services.normalizer import Normalizer
 from src.services.notifier import Notifier
+from src.services.social_proof_fetcher import SocialProofFetcher
 from src.shared.config import load_config
 from src.shared.logging.logger import configure_logging, get_logger
 from src.shared.utils.date_utils import now_utc
@@ -76,7 +77,12 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         collector = Collector(source_master)
         normalizer = Normalizer()
         deduplicator = Deduplicator(cache_repository)
-        buzz_scorer = BuzzScorer()
+        social_proof_fetcher = SocialProofFetcher(timeout=5, concurrency_limit=10)
+        buzz_scorer = BuzzScorer(
+            interest_profile=interest_profile,
+            source_master=source_master,
+            social_proof_fetcher=social_proof_fetcher,
+        )
         candidate_selector = CandidateSelector(max_candidates=config.llm_candidate_max)
         llm_judge = LlmJudge(
             bedrock_client=bedrock_runtime,

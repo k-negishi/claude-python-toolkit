@@ -7,6 +7,7 @@ sources:
 #    timeout_seconds: 15
 #    retry_count: 3
 #    enabled: true
+#    authority_level: medium
 
   - source_id: hatena_bookmark_tech
     name: はてなブックマーク（テクノロジー）
@@ -16,6 +17,7 @@ sources:
     timeout_seconds: 15
     retry_count: 3
     enabled: true
+    authority_level: medium
 
   - source_id: zenn_trend
     name: Zenn（トレンド）
@@ -25,6 +27,7 @@ sources:
     timeout_seconds: 10
     retry_count: 2
     enabled: true
+    authority_level: medium
 
   - source_id: qiita_trend
     name: Qiita（トレンド）
@@ -34,6 +37,7 @@ sources:
     timeout_seconds: 10
     retry_count: 2
     enabled: true
+    authority_level: medium
 
 #  - source_id: aws_blog
 #    name: AWS Blog
@@ -43,3 +47,4 @@ sources:
 #    timeout_seconds: 15
 #    retry_count: 3
 #    enabled: true
+#    authority_level: official

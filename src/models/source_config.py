@@ -31,6 +31,22 @@ class Priority(StrEnum):
     LOW = "low"
 
 
+class AuthorityLevel(StrEnum):
+    """公式度レベル.
+
+    Attributes:
+        OFFICIAL: 公式情報源（AWS公式、PostgreSQL公式など）
+        HIGH: 高い信頼性（Uber Engineering Blogなど）
+        MEDIUM: 中程度の信頼性（Zenn、Qiitaなど）
+        LOW: 低い信頼性（デフォルト）
+    """
+
+    OFFICIAL = "official"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
 class SourceConfig(BaseModel):
     """収集元設定.
 
@@ -45,6 +61,7 @@ class SourceConfig(BaseModel):
         timeout_seconds: タイムアウト（5-30秒）
         retry_count: リトライ回数（0-5回）
         enabled: 有効フラグ
+        authority_level: 公式度レベル（デフォルト: LOW）
     """
 
     source_id: str = Field(min_length=1, max_length=50, pattern="^[a-z0-9_]+$")
@@ -55,3 +72,4 @@ class SourceConfig(BaseModel):
     timeout_seconds: int = Field(ge=5, le=30, default=10)
     retry_count: int = Field(ge=0, le=5, default=2)
     enabled: bool = True
+    authority_level: AuthorityLevel = AuthorityLevel.LOW

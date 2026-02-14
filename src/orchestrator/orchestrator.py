@@ -3,6 +3,7 @@
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from src.models.execution_summary import ExecutionSummary
 from src.repositories.cache_repository import CacheRepository
@@ -165,7 +166,7 @@ class Orchestrator:
 
             # Step 3: Buzzスコア計算
             logger.info("step3_start", step="calculate_buzz_scores")
-            buzz_scores = self._buzz_scorer.calculate_scores(dedup_result.unique_articles)
+            buzz_scores = await self._buzz_scorer.calculate_scores(dedup_result.unique_articles)
             logger.info("step3_complete", score_count=len(buzz_scores))
 
             # Step 4: 候補選定
@@ -207,10 +208,18 @@ class Orchestrator:
                     judged_count=llm_judged_count,
                     executed_at=executed_at,
                 )
+                mail_html_body = self._formatter.format_html(
+                    selected_articles=final_result.selected_articles,
+                    collected_count=collected_count,
+                    judged_count=llm_judged_count,
+                    executed_at=executed_at,
+                )
 
                 # メール送信
-                subject = f"AI Curated Newsletter - {executed_at.strftime('%Y-%m-%d')}"
-                notification_result = self._notifier.send(subject=subject, body=mail_body)
+                subject = self._build_newsletter_subject(executed_at)
+                notification_result = self._notifier.send(
+                    subject=subject, body=mail_body, html_body=mail_html_body
+                )
                 notification_sent = True
                 logger.info(
                     "step7_complete",
@@ -259,3 +268,11 @@ class Orchestrator:
                 error=str(e),
             )
             raise
+
+    @classmethod
+    def _build_newsletter_subject(cls, executed_at: datetime) -> str:
+        """ニュースレター件名を生成する."""
+        jst_date = executed_at.astimezone(cls._TOKYO_TZ)
+        return f"Techニュースレター - {jst_date.year}年{jst_date.month}月{jst_date.day}日"
+
+    _TOKYO_TZ = ZoneInfo("Asia/Tokyo")

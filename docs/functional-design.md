@@ -227,25 +227,37 @@ from dataclasses import dataclass
 
 @dataclass
 class BuzzScore:
-    """話題性スコア（非LLM計算）.
+    """話題性スコア（非LLM計算、5要素統合版）.
 
     Attributes:
         url: 記事URL
-        source_count: 複数ソース出現回数
         recency_score: 鮮度スコア（0-100）
-        domain_diversity_score: ドメイン多様性スコア（0-100）
-        total_score: 総合Buzzスコア
+        consensus_score: 複数ソース出現スコア（0-100）
+        social_proof_score: 外部反応スコア（0-100）
+        interest_score: 興味との一致度スコア（0-100）
+        authority_score: 公式補正スコア（0-100）
+        source_count: 複数ソース出現回数（メタデータ）
+        social_proof_count: 外部反応数（はてブ数、メタデータ）
+        total_score: 総合Buzzスコア（0-100）
     """
-    url: str                    # 記事URL
-    source_count: int           # 複数ソース出現回数（1以上）
-    recency_score: float        # 鮮度スコア（0-100）
-    domain_diversity_score: float  # ドメイン多様性スコア（0-100）
-    total_score: float          # 総合スコア
+    url: str                       # 記事URL
+    # 各要素スコア（0-100）
+    recency_score: float           # 鮮度スコア
+    consensus_score: float         # 複数ソース出現スコア
+    social_proof_score: float      # 外部反応スコア（はてブ数など）
+    interest_score: float          # 興味との一致度スコア
+    authority_score: float         # 公式補正スコア
+    # メタデータ
+    source_count: int              # 複数ソース出現回数（1以上）
+    social_proof_count: int        # 外部反応数（はてブ数）
+    # 総合スコア
+    total_score: float             # 総合Buzzスコア（0-100）
 ```
 
 **制約**:
 - `source_count`: 1以上
-- `recency_score`, `domain_diversity_score`, `total_score`: 0-100の範囲
+- 各スコア（`recency_score`, `consensus_score`, `social_proof_score`, `interest_score`, `authority_score`, `total_score`）: 0-100の範囲
+- `social_proof_count`: 0以上
 
 ### エンティティ: ExecutionSummary（実行サマリ）
 
@@ -577,20 +589,48 @@ class Deduplicator:
 ### BuzzScorer（話題性スコア計算器）
 
 **責務**:
-- 複数ソース出現回数の集計
-- 鮮度スコア計算
-- ドメイン多様性スコア計算
-- 総合Buzzスコア算出
+- 5要素のスコア計算（Recency、Consensus、SocialProof、Interest、Authority）
+- 重み付け合算による総合Buzzスコア算出
+- はてなブックマーク数の取得（SocialProof）
+- InterestProfileとの一致度判定
+
+**5要素の詳細**:
+1. **Recency（鮮度）**: 公開からの経過日数（重み: 25%）
+2. **Consensus（複数ソース出現）**: 同一URLの出現回数（重み: 20%）
+3. **SocialProof（外部反応）**: はてなブックマーク数（重み: 20%）
+4. **Interest（興味との一致度）**: InterestProfileとのマッチング（重み: 25%）
+5. **Authority（公式補正）**: 公式ブログ・一次情報源への加点（重み: 10%）
+
+**スコア計算式**:
+```
+total_score = (recency × 0.25) + (consensus × 0.20) + (social_proof × 0.20)
+            + (interest × 0.25) + (authority × 0.10)
+```
 
 **インターフェース**:
 ```python
 from typing import List, Dict
 
 class BuzzScorer:
-    """話題性スコア計算（非LLM）."""
+    """話題性スコア計算（5要素統合版、非LLM）."""
 
-    def calculate_scores(self, articles: List[Article]) -> Dict[str, BuzzScore]:
-        """記事の話題性スコアを計算する.
+    def __init__(
+        self,
+        interest_profile: InterestProfile,
+        source_master: SourceMaster,
+        social_proof_fetcher: SocialProofFetcher,
+    ) -> None:
+        """Buzzスコア計算サービスを初期化する.
+
+        Args:
+            interest_profile: 興味プロファイル
+            source_master: 収集元マスタ
+            social_proof_fetcher: SocialProof取得サービス
+        """
+        ...
+
+    async def calculate_scores(self, articles: List[Article]) -> Dict[str, BuzzScore]:
+        """記事の話題性スコアを計算する（非同期版）.
 
         Args:
             articles: 記事リスト
@@ -599,33 +639,13 @@ class BuzzScorer:
             URLをキーとするBuzzScoreの辞書
         """
         ...
-
-    def calculate_recency_score(self, published_at: datetime) -> float:
-        """鮮度スコアを計算する.
-
-        Args:
-            published_at: 公開日時
-
-        Returns:
-            鮮度スコア（0-100）
-        """
-        ...
-
-    def calculate_domain_diversity_score(self, url: str, all_articles: List[Article]) -> float:
-        """ドメイン多様性スコアを計算する.
-
-        Args:
-            url: 対象URL
-            all_articles: 全記事リスト
-
-        Returns:
-            ドメイン多様性スコア（0-100）
-        """
-        ...
 ```
 
 **依存関係**:
-- urllib.parse（ドメイン抽出）
+- InterestProfile（Interest要素）
+- SourceMaster（Authority要素）
+- SocialProofFetcher（SocialProof要素）
+- httpx（はてブAPI呼び出し）
 
 ### CandidateSelector（候補選定器）
 
