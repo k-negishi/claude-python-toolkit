@@ -41,3 +41,27 @@ def test_estimate_bedrock_cost_usd_raises_for_negative_article_count(article_cou
     """件数が負の場合は ValueError になることを確認."""
     with pytest.raises(ValueError, match="article_count"):
         estimate_bedrock_cost_usd(article_count)
+
+
+def test_estimate_bedrock_cost_usd_raises_for_negative_input_tokens() -> None:
+    """avg_input_tokensが負の場合は ValueError になることを確認."""
+    with pytest.raises(ValueError, match="avg_input_tokens"):
+        estimate_bedrock_cost_usd(10, avg_input_tokens=-1)
+
+
+def test_estimate_bedrock_cost_usd_raises_for_negative_output_tokens() -> None:
+    """avg_output_tokensが負の場合は ValueError になることを確認."""
+    with pytest.raises(ValueError, match="avg_output_tokens"):
+        estimate_bedrock_cost_usd(10, avg_output_tokens=-1)
+
+
+def test_estimate_bedrock_cost_usd_raises_for_negative_input_cost() -> None:
+    """input_cost_per_millionが負の場合は ValueError になることを確認."""
+    with pytest.raises(ValueError, match="input_cost_per_million"):
+        estimate_bedrock_cost_usd(10, input_cost_per_million=-1.0)
+
+
+def test_estimate_bedrock_cost_usd_raises_for_negative_output_cost() -> None:
+    """output_cost_per_millionが負の場合は ValueError になることを確認."""
+    with pytest.raises(ValueError, match="output_cost_per_million"):
+        estimate_bedrock_cost_usd(10, output_cost_per_million=-1.0)

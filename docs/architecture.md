@@ -447,7 +447,7 @@ logger.info(
 - FinalSelector: 選定ロジック、ドメイン偏り制御
 - Formatter: メール本文生成
 
-**カバレッジ目標:** 80%以上
+**カバレッジ目標:** 90%以上
 
 **モック対象:**
 - DynamoDB（boto3.dynamodb.Table）

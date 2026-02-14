@@ -488,10 +488,10 @@ sam local invoke NewsletterFunction \
 
 | レイヤー | カバレッジ目標 |
 |---------|--------------|
-| services/ | 80%以上 |
-| repositories/ | 70%以上 |
-| models/ | 60%以上 |
-| shared/ | 80%以上 |
+| services/ | 90%以上 |
+| repositories/ | 90%以上 |
+| models/ | 90%以上 |
+| shared/ | 90%以上 |
 
 **カバレッジ計測**:
 
@@ -872,7 +872,7 @@ sam deploy
    - SRPを守っているか
 
 3. **テスト**
-   - テストカバレッジは80%以上か
+   - テストカバレッジは90%以上か
    - エッジケースをテストしているか
 
 4. **パフォーマンス**

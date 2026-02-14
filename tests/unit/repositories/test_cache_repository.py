@@ -141,3 +141,170 @@ def test_cache_repository_put_with_summary() -> None:
     put_item = table.put_item.call_args.kwargs["Item"]
     assert put_item["summary"] == "This is a test summary for saving"
     assert "reason" not in put_item  # reasonフィールドは保存されない
+
+
+def test_get_returns_none_when_item_not_exists() -> None:
+    """アイテムが存在しない場合、Noneを返す."""
+    repository, table = _create_repository()
+    table.get_item.return_value = {}  # "Item"キーが存在しない
+
+    result = repository.get("https://example.com/not-exists")
+
+    assert result is None
+
+
+def test_get_returns_none_on_client_error() -> None:
+    """ClientErrorが発生した場合、Noneを返す."""
+    from botocore.exceptions import ClientError
+
+    repository, table = _create_repository()
+    table.get_item.side_effect = ClientError(
+        {"Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}},
+        "GetItem",
+    )
+
+    result = repository.get("https://example.com/error")
+
+    assert result is None
+
+
+def test_put_raises_error_on_client_error() -> None:
+    """putでClientErrorが発生した場合、エラーを再送出する."""
+    from botocore.exceptions import ClientError
+
+    repository, table = _create_repository()
+    table.put_item.side_effect = ClientError(
+        {"Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}},
+        "PutItem",
+    )
+
+    judgment = JudgmentResult(
+        url="https://example.com/error",
+        title="Error Title",
+        description="Error description",
+        interest_label=InterestLabel.FYI,
+        buzz_label=BuzzLabel.LOW,
+        confidence=0.75,
+        summary="Error summary",
+        model_id="error-model",
+        judged_at=datetime(2026, 2, 15, 10, 0, 0, tzinfo=timezone.utc),
+        published_at=datetime(2026, 2, 14, 12, 0, 0, tzinfo=timezone.utc),
+        tags=[],
+    )
+
+    try:
+        repository.put(judgment)
+        assert False, "Expected ClientError to be raised"
+    except ClientError:
+        pass  # Expected
+
+
+def test_exists_returns_true_when_cached() -> None:
+    """existsメソッドでキャッシュが存在する場合、Trueを返す."""
+    repository, table = _create_repository()
+    table.get_item.return_value = {
+        "Item": {
+            "PK": "URL#abc",
+            "SK": "JUDGMENT#v1",
+            "url": "https://example.com/exists",
+            "title": "Title",
+            "description": "Description",
+            "interest_label": "ACT_NOW",
+            "buzz_label": "HIGH",
+            "confidence": 0.95,
+            "summary": "Summary",
+            "model_id": "model",
+            "judged_at": "2026-02-14T00:00:00+00:00",
+            "published_at": "2026-02-13T12:00:00+00:00",
+        }
+    }
+
+    result = repository.exists("https://example.com/exists")
+
+    assert result is True
+
+
+def test_exists_returns_false_when_not_cached() -> None:
+    """existsメソッドでキャッシュが存在しない場合、Falseを返す."""
+    repository, table = _create_repository()
+    table.get_item.return_value = {}  # "Item"キーが存在しない
+
+    result = repository.exists("https://example.com/not-exists")
+
+    assert result is False
+
+
+def test_batch_exists_empty_list() -> None:
+    """batch_existsで空のリストを渡した場合、空の辞書を返す."""
+    repository, table = _create_repository()
+
+    result = repository.batch_exists([])
+
+    assert result == {}
+
+
+def test_batch_exists_single_url() -> None:
+    """batch_existsで単一URLを確認できる."""
+    repository, _ = _create_repository()
+    dynamodb_resource = repository._dynamodb
+    dynamodb_resource.batch_get_item.return_value = {
+        "Responses": {
+            "cache-table": [
+                {
+                    "url": "https://example.com/exists",
+                }
+            ]
+        }
+    }
+
+    result = repository.batch_exists(["https://example.com/exists"])
+
+    assert result == {"https://example.com/exists": True}
+
+
+def test_batch_exists_multiple_urls() -> None:
+    """batch_existsで複数URLを一括確認できる."""
+    repository, _ = _create_repository()
+    dynamodb_resource = repository._dynamodb
+    dynamodb_resource.batch_get_item.return_value = {
+        "Responses": {
+            "cache-table": [
+                {"url": "https://example.com/exists1"},
+                {"url": "https://example.com/exists2"},
+            ]
+        }
+    }
+
+    result = repository.batch_exists([
+        "https://example.com/exists1",
+        "https://example.com/exists2",
+        "https://example.com/not-exists",
+    ])
+
+    assert result == {
+        "https://example.com/exists1": True,
+        "https://example.com/exists2": True,
+        "https://example.com/not-exists": False,
+    }
+
+
+def test_batch_exists_handles_client_error() -> None:
+    """batch_existsでClientErrorが発生した場合、全てFalseを返す."""
+    from botocore.exceptions import ClientError
+
+    repository, _ = _create_repository()
+    dynamodb_resource = repository._dynamodb
+    dynamodb_resource.batch_get_item.side_effect = ClientError(
+        {"Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}},
+        "BatchGetItem",
+    )
+
+    result = repository.batch_exists([
+        "https://example.com/url1",
+        "https://example.com/url2",
+    ])
+
+    assert result == {
+        "https://example.com/url1": False,
+        "https://example.com/url2": False,
+    }
