@@ -91,8 +91,8 @@ argument-hint: 機能名 または GitHub issue URL
    - ステップ1で作成した3つのファイルの内容を生成
    - `requirements.md`, `design.md`, `tasklist.md`
 
-2. **requirements.md に issue との紐付けを追加:**
-   - issue URL が存在する場合、以下のセクションを冒頭に追加:
+2. **requirements.md に以下を追加:**
+   - **issue との紐付け** (issue URL が存在する場合):
      ```markdown
      ## GitHub Issue
      [issue URL]
@@ -101,6 +101,32 @@ argument-hint: 機能名 または GitHub issue URL
      - タイトル: [issue.title]
      - 本文: [issue.body]
      - ラベル: [issue.labels]
+     ```
+   - **実装方針** (必須):
+     ```markdown
+     ## 実装方針
+     - Kent Beck の TDD (Test-Driven Development) で実装する
+     - RED → GREEN → REFACTOR のサイクルを遵守
+     - テストを先に書き、最小限の実装でパスさせ、その後リファクタリング
+     ```
+
+3. **design.md にTDDサイクルの説明を追加:**
+   - 実装アプローチのセクションに、TDDサイクルの具体的な手順を記載
+   - 例:
+     ```markdown
+     ## TDDサイクル
+     1. **RED**: 失敗するテストを先に書く
+     2. **GREEN**: 最小限の実装でテストをパスさせる
+     3. **REFACTOR**: コード品質を向上させる
+     ```
+
+4. **tasklist.md にTDD実装タスクを含める:**
+   - 各実装タスクに対して、以下のサブタスクを含める:
+     ```markdown
+     - [ ] [機能名] を実装
+       - [ ] RED: テストを先に書く
+       - [ ] GREEN: 実装してテストをパスさせる
+       - [ ] REFACTOR: コードを改善
      ```
 
 ## ステップ6: 完了確認
