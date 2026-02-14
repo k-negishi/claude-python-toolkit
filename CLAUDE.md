@@ -165,10 +165,21 @@ cat .env
 
 # 機能追加(定型フローはコマンド)
 > /add-feature ユーザープロフィール編集
+> /add-feature https://github.com/owner/repo/issues/123  # issue URLも指定可能
+
+# 段階的な機能追加(計画と実装を分離)
+> /plan ユーザープロフィール編集  # まず計画だけを立てたい場合
+> /implement .steering/20260214-user-profile-edit/  # 既存の計画から実装
 
 # 詳細レビュー(詳細なレポートが必要なとき)
 > /review-docs docs/product-requirements.md
 ```
+
+**コマンドの使い分け:**
+
+- **`/add-feature`**: 計画から実装まで一気に完了させたい場合 (完全自動)
+- **`/plan`**: まず計画だけを立てたい場合、要件を確認したい場合 (対話的)
+- **`/implement`**: 既にステアリングファイルがあり、実装だけを行いたい場合 (TDDサイクル)
 
 **ポイント**: スペック駆動開発の詳細を意識する必要はありません。Claude Codeが適切なスキルを判断してロードします。
 
