@@ -21,11 +21,13 @@ graph TB
     CacheRepo[CacheRepository]
     HistoryRepo[HistoryRepository]
     SourceMaster[SourceMaster]
+    InterestMaster[InterestMaster]
 
     DynamoDB[(DynamoDB)]
     Bedrock[AWS Bedrock]
     SES[AWS SES]
     RSS[RSS/Atom Feeds]
+    InterestsYAML[config/interests.yaml]
 
     EventBridge -->|週2-3回実行| Lambda
     Lambda --> Orchestrator
@@ -35,6 +37,9 @@ graph TB
     SourceMaster -.->|収集元リスト| Collector
     Collector -.->|RSS取得| RSS
 
+    Orchestrator --> InterestMaster
+    InterestMaster -.->|関心プロファイル読み込み| InterestsYAML
+
     Collector --> Normalizer
     Normalizer --> Deduplicator
     Deduplicator --> CacheRepo
@@ -43,6 +48,7 @@ graph TB
     Deduplicator --> BuzzScorer
     BuzzScorer --> CandidateSelector
     CandidateSelector --> LlmJudge
+    InterestMaster -.->|関心プロファイル提供| LlmJudge
 
     LlmJudge -.->|判定リクエスト| Bedrock
     LlmJudge --> CacheRepo
@@ -167,6 +173,52 @@ class JudgmentResult:
 - `buzz_label`: 3つの値のみ許可
 - `confidence`: 0.0-1.0の範囲
 - `reason`: 最大200文字
+
+### エンティティ: InterestProfile（関心プロファイル）
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class JudgmentCriterion:
+    """判定基準の定義.
+
+    Attributes:
+        label: 判定ラベル（ACT_NOW/THINK/FYI/IGNORE）
+        description: 判定基準の説明
+        examples: 該当する記事の例
+    """
+    label: str
+    description: str
+    examples: list[str]
+
+@dataclass
+class InterestProfile:
+    """関心プロファイル.
+
+    Attributes:
+        summary: プロファイルの概要
+        high_interest: 高い関心を持つトピックのリスト
+        medium_interest: 中程度の関心を持つトピックのリスト
+        low_priority: 低優先度のトピックのリスト
+        criteria: 判定基準の辞書（キー: act_now/think/fyi/ignore）
+    """
+    summary: str
+    high_interest: list[str]
+    medium_interest: list[str]
+    low_priority: list[str]
+    criteria: dict[str, JudgmentCriterion]
+```
+
+**制約**:
+- `summary`: 必須、プロファイルの概要説明
+- `high_interest`, `medium_interest`, `low_priority`: 空リスト可
+- `criteria`: act_now, think, fyi, ignoreの4つのキーを持つ
+
+**利用方法**:
+- `config/interests.yaml`から読み込み
+- `InterestMaster`リポジトリ経由で取得
+- `LlmJudge`でプロンプト生成時に使用
 
 ### エンティティ: BuzzScore（話題性スコア）
 
