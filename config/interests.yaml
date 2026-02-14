@@ -50,6 +50,7 @@ profile:
     - KVM
     - 5G
     - 6G
+    - RAG
 
 # 判定基準の定義
 criteria:
