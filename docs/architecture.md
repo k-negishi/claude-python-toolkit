@@ -6,7 +6,7 @@
 
 | 技術 | バージョン | 選定理由 |
 |------|-----------|----------|
-| Python | 3.12+ | AWS Lambda標準サポート、2028年10月までの長期サポート保証、型ヒント・dataclass・match式など最新機能が利用可能、豊富なライブラリエコシステム |
+| Python | 3.14+ | AWS Lambda標準サポート、型ヒント・dataclass・match式など最新機能が利用可能、豊富なライブラリエコシステム |
 
 ### AWSサービス
 
@@ -15,7 +15,7 @@
 | AWS Lambda | 実行環境 | サーバーレス、低コスト（実行時のみ課金）、自動スケール、週2-3回の定期実行に最適、15分のタイムアウト（現状の処理時間6-10分に対応可能） |
 | AWS EventBridge | スケジューラ | cron形式のスケジュール実行、Lambdaとのネイティブ連携、柔軟な実行頻度設定（週2-3回、曜日・時間指定） |
 | Amazon DynamoDB | データストア | サーバーレス、オンデマンドモード（使用量に応じた自動スケール）、低レイテンシ、キャッシュ・履歴保存に最適、月$5以内のコスト目標に対応 |
-| AWS Bedrock | LLMサービス | Claude 3.5 Sonnetへのマネージドアクセス、JSON出力の信頼性、AWSアカウント内で完結（セキュリティ）、従量課金（月$4以内の目標に対応） |
+| AWS Bedrock | LLMサービス | Claude Haiku 4.5へのマネージドアクセス、JSON出力の信頼性、AWSアカウント内で完結（セキュリティ）、従量課金（月$1以内の目標に対応、83%コスト削減） |
 | Amazon SES | メール送信 | 低コスト（$0.10/1000通）、高い到達率、HTMLメール対応、バウンス・苦情管理 |
 | Amazon S3 | 一時データ保存 | 将来のStep Functions化時のデータ受け渡しに使用（Phase 2）、設定ファイル保存 |
 | AWS Secrets Manager | 認証情報管理 | メールアドレス、通知先アドレスの安全な保存、自動ローテーション対応 |
@@ -52,7 +52,7 @@
                      │
                      ↓
 ┌─────────────────────────────────────────────────────────┐
-│ Lambda Function (Python 3.12)                           │
+│ Lambda Function (Python 3.14)                           │
 │ ┌─────────────────────────────────────────────────────┐ │
 │ │ Handler                                             │ │
 │ └────────┬────────────────────────────────────────────┘ │
@@ -64,7 +64,7 @@
 │ │  ├─ Step 3: Calculate Buzz Score                   │ │
 │ │  ├─ Step 4: Select Candidates                      │ │
 │ │  ├─ Step 5: LLM Judge (最大150件)                  │ │
-│ │  ├─ Step 6: Final Select (最大12件)                │ │
+│ │  ├─ Step 6: Final Select (最大15件)                │ │
 │ │  ├─ Step 7: Format & Notify                        │ │
 │ │  └─ Step 8: Save History                           │ │
 │ └─────────────────────────────────────────────────────┘ │
@@ -185,7 +185,7 @@
   "buzz_label": "HIGH",
   "confidence": 0.85,
   "reason": "PostgreSQLのインデックス戦略について実践的な知見",
-  "model_id": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  "model_id": "anthropic.claude-haiku-4-5-20251001-v1:0",
   "judged_at": "2025-01-15T10:30:00Z",
   "title": "PostgreSQL Index Strategies",
   "source_name": "Hacker News"
@@ -281,10 +281,10 @@ DYNAMODB_CACHE_TABLE=ai-curated-newsletter-cache
 DYNAMODB_HISTORY_TABLE=ai-curated-newsletter-history
 SOURCE_CONFIG_S3_BUCKET=ai-curated-newsletter-config
 SOURCE_CONFIG_S3_KEY=sources.yaml
-BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+BEDROCK_MODEL_ID=anthropic.claude-haiku-4-5-20251001-v1:0
 BEDROCK_MAX_PARALLEL=5
 LLM_CANDIDATE_MAX=150
-FINAL_SELECT_MAX=12
+FINAL_SELECT_MAX=15
 FINAL_SELECT_MAX_PER_DOMAIN=4
 ```
 
@@ -314,7 +314,7 @@ AWS Secrets Manager:
 - 拒否操作: `Scan`, `DeleteTable`, `UpdateTable`
 
 **Bedrockアクセス制御:**
-- 許可操作: `InvokeModel`（Claude 3.5 Sonnetのみ）
+- 許可操作: `InvokeModel`（Claude Haiku 4.5のみ）
 - リージョン制限: `us-east-1`のみ
 
 ### 入力検証
@@ -592,8 +592,8 @@ def measure_execution_time(func):
 
 | 項目 | 要件 |
 |------|------|
-| AWSリージョン | us-east-1（Bedrock Claude 3.5 Sonnet利用可能） |
-| Lambda ランタイム | Python 3.12 |
+| AWSリージョン | ap-northeast-1（Bedrock Claude Haiku 4.5利用可能） |
+| Lambda ランタイム | Python 3.14 |
 | Lambda メモリ | 1024MB |
 | Lambda タイムアウト | 15分 |
 | DynamoDB | オンデマンドモード |
@@ -605,7 +605,7 @@ def measure_execution_time(func):
 |------|------|------|
 | Lambda実行時間 | 15分以内 | AWS Lambda最大タイムアウト |
 | LLM判定対象 | 最大150件 | コスト制約（月$4）、処理時間制約（5分以内） |
-| 最終通知件数 | 最大12件 | 出力最小主義の原則（PRD絶対制約） |
+| 最終通知件数 | 最大15件 | 出力最小主義の原則（PRD絶対制約） |
 | Bedrock並列度 | 5件 | レート制限・安定性のバランス |
 | RSS/Atomタイムアウト | 10秒/ソース | 全体実行時間への影響を最小化 |
 
@@ -627,13 +627,13 @@ def measure_execution_time(func):
 |---------|-----------|------|
 | Lambda | $1.00 | 週2回 × 10分 × $0.0000166667/GB秒 × 1GB |
 | DynamoDB | $0.50 | オンデマンド（読み書き + ストレージ） |
-| Bedrock | $4.00 | 週2回 × 120件 × Claude 3.5 Sonnet料金 |
+| Bedrock | $0.70 | 週2回 × 120件 × Claude Haiku 4.5料金（input $1.00/1M, output $5.00/1M） |
 | SES | $0.01 | 週2回 × $0.10/1000通 |
 | Secrets Manager | $0.40 | 1シークレット × $0.40/月 |
 | S3 | $0.10 | 設定ファイル保存（Phase 2で一時データ追加） |
 | EventBridge | $0.00 | 無料枠内（月100万イベント） |
 | CloudWatch Logs | $0.50 | ログ保存（5GB/月） |
-| **合計** | **$6.51** | **余裕あり（$10以内）** |
+| **合計** | **$3.21** | **大幅削減（$10以内、従来比$3.30削減）** |
 
 ## 依存関係管理
 
@@ -644,7 +644,7 @@ def measure_execution_time(func):
 [project]
 name = "ai-curated-newsletter"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "boto3>=1.34.0",
     "feedparser>=6.0.0",
@@ -715,7 +715,7 @@ Transform: AWS::Serverless-2016-10-31
 
 Globals:
   Function:
-    Runtime: python3.12
+    Runtime: python3.14
     MemorySize: 1024
     Timeout: 900
     Environment:
@@ -736,7 +736,7 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: bedrock:InvokeModel
-              Resource: !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-sonnet-*
+              Resource: !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-haiku-4-5-*
         - SESCrudPolicy:
             IdentityName: !Ref SenderEmail
         - AWSSecretsManagerGetSecretValuePolicy:
@@ -891,4 +891,4 @@ sam deploy --guided
 - Step Functions: 月$0.0006
 - S3: 月$0.01
 
-**合計:** 月$6.52（依然として$10以内）
+**合計:** 月$3.22（大幅削減、依然として$10以内）

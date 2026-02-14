@@ -8,11 +8,11 @@ from src.shared.utils.bedrock_cost_estimator import estimate_bedrock_cost_usd
 @pytest.mark.parametrize(
     ("article_count", "expected"),
     [
-        (30, 0.288),
-        (60, 0.576),
-        (90, 0.864),
-        (120, 1.152),
-        (150, 1.44),
+        (30, 0.048),  # Claude Haiku 4.5: (30*900*1.0 + 30*140*5.0)/1M = 0.048
+        (60, 0.096),  # (60*900*1.0 + 60*140*5.0)/1M = 0.096
+        (90, 0.144),  # (90*900*1.0 + 90*140*5.0)/1M = 0.144
+        (120, 0.192), # (120*900*1.0 + 120*140*5.0)/1M = 0.192
+        (150, 0.24),  # (150*900*1.0 + 150*140*5.0)/1M = 0.24
     ],
 )
 def test_estimate_bedrock_cost_usd_default_profile(article_count: int, expected: float) -> None:

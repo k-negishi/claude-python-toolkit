@@ -6,17 +6,21 @@ def estimate_bedrock_cost_usd(
     *,
     avg_input_tokens: int = 900,
     avg_output_tokens: int = 140,
-    input_cost_per_million: float = 6.0,
-    output_cost_per_million: float = 30.0,
+    input_cost_per_million: float = 1.0,
+    output_cost_per_million: float = 5.0,
 ) -> float:
     """記事判定件数からBedrockコスト（USD）を推定する.
 
+    デフォルト単価はClaude Haiku 4.5の価格（2026年2月時点）:
+    - Input: $1.00 / 1M tokens
+    - Output: $5.00 / 1M tokens
+
     Args:
         article_count: 判定記事件数
-        avg_input_tokens: 1記事あたり平均入力トークン数
-        avg_output_tokens: 1記事あたり平均出力トークン数
-        input_cost_per_million: 入力トークン単価（USD/1M tokens）
-        output_cost_per_million: 出力トークン単価（USD/1M tokens）
+        avg_input_tokens: 1記事あたり平均入力トークン数（デフォルト: 900）
+        avg_output_tokens: 1記事あたり平均出力トークン数（デフォルト: 140）
+        input_cost_per_million: 入力トークン単価（USD/1M tokens、デフォルト: $1.00）
+        output_cost_per_million: 出力トークン単価（USD/1M tokens、デフォルト: $5.00）
 
     Returns:
         推定コスト（USD）
