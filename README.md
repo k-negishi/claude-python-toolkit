@@ -245,10 +245,13 @@ ls -la .claude/commands/
 │ 3. /setup-project                                │
 │    → 6つの永続ドキュメントを対話的に作成            │
 │                                                  │
-│ 4. /add-feature [最初の機能]                       │
-│    → 計画 → TDD実装 → 品質チェック                 │
+│ 4. /spec-plan [最初の機能]                         │
+│    → ステアリングファイルを対話的に作成              │
 │                                                  │
-│ 5. /commit-push-close                            │
+│ 5. /implement [ステアリングディレクトリパス]          │
+│    → TDD実装 → 品質チェック                        │
+│                                                  │
+│ 6. /commit-push-close                            │
 │    → コミット → push → issue クローズ              │
 └─────────────────────────────────────────────────┘
 ```
@@ -284,38 +287,50 @@ claude
 #   ✅ docs/development-guidelines.md （開発ガイドライン）
 #   ✅ docs/glossary.md               （用語集）
 
-# ── ステップ4: 最初の機能を実装 ──
-> /add-feature タスクのCRUDを実装
-# → .steering/20260215-タスクのCRUDを実装/ に計画ファイルを作成
-# → TDD (RED → GREEN → REFACTOR) で自動実装
+# ── ステップ4: 最初の機能を計画 ──
+> /spec-plan タスクのCRUDを実装
+# → タスクボリュームを判定（大規模/中規模/小規模）
+# → ユーザーにファイル範囲を確認
+# → .steering/20260215-タスクのCRUDを実装/ にステアリングファイルを作成
+#   ├── requirements.md（要件）
+#   ├── design.md（設計）
+#   └── tasklist.md（タスクリスト）
+
+# （内容を確認し、必要に応じて修正を依頼）
+> requirements.md の非機能要件にレスポンス200ms以内を追加して
+
+# ── ステップ5: 実装 ──
+> /implement .steering/20260215-タスクのCRUDを実装/
+# → TDD (RED → GREEN → REFACTOR) で実装
 # → pytest, ruff, mypy が全てパス
 
-# ── ステップ5: コミットしてpush ──
+# ── ステップ6: コミットしてpush ──
 > /commit-push-close
 ```
 
 ### 2回目以降: 機能追加・改修
 
-プロジェクトの永続ドキュメント（`docs/`）が既にある状態で、新しい機能追加や改修を行う場合の流れです。3つのパターンがあります。
+プロジェクトの永続ドキュメント（`docs/`）が既にある状態で、新しい機能追加や改修を行う場合の流れです。2つのパターンがあります。
 
-#### パターンA: 一気通貫（計画から実装まで自動）
+#### パターンA: 標準フロー（/spec-plan → /implement）
 
-計画から実装まで一気に完了させたい場合に使います。
+機能追加や複数ファイルにまたがる改修に使います。
 
 ```
-/add-feature [機能名 or issue URL]
-    ↓
-  /plan を自動実行
+/spec-plan [機能名 or issue URL]
     ├── プロジェクト理解（CLAUDE.md, docs/ を読む）
     ├── 既存パターン調査（Grepでソースコード検索）
     ├── 影響範囲の事前調査
-    ├── ステアリングファイル作成
-    │   └── .steering/[YYYYMMDD]-[機能名]/
-    │       ├── requirements.md（要件）
-    │       ├── design.md（設計）
-    │       └── tasklist.md（タスクリスト）
+    ├── タスクボリューム判定 → ユーザーに確認
+    └── ステアリングファイル作成
+        └── .steering/[YYYYMMDD]-[機能名]/
+            ├── requirements.md（要件）  ← 大規模のみ
+            ├── design.md（設計）        ← 大規模・中規模
+            └── tasklist.md（タスクリスト）← 常に作成
     ↓
-  /implement を自動実行
+  （ユーザーが内容を確認・修正）
+    ↓
+/implement [ステアリングディレクトリパス]
     ├── TDDサイクル（RED → GREEN → REFACTOR）
     ├── 品質チェック（pytest, ruff, mypy）
     └── 実装検証（implementation-validator）
@@ -323,25 +338,34 @@ claude
 /commit-push-close
 ```
 
-**具体例: GitHub issue から機能追加**
+**具体例1: GitHub issue から機能追加**
 
 ```bash
 claude
-> /add-feature https://github.com/owner/task-api/issues/12
+# ── 計画フェーズ ──
+> /spec-plan https://github.com/owner/task-api/issues/12
 # issue「タスクに優先度フィールドを追加」を自動取得
 #
-# 【計画フェーズ】
-#   → .steering/20260215-タスクに優先度フィールドを追加/ を作成
+# タスクボリューム: 【大規模】と判定
+#   - 新機能追加である
+#   - models, API, テストの複数ファイルに影響
+# → ユーザーが【大】requirements + design + tasklist を選択
+#
+# .steering/20260215-タスクに優先度フィールドを追加/ を作成
 #   → requirements.md: issue内容 + 実装方針（TDD）
 #   → design.md: Priority enum定義、DB migration、API変更
 #   → tasklist.md: 全タスクをTDDサブタスク付きで列挙
-#
-# 【実装フェーズ】
+
+# （内容を確認してOK）
+
+# ── 実装フェーズ ──
+> /implement .steering/20260215-タスクに優先度フィールドを追加/
 #   → RED: test_priority.py に失敗するテストを書く
 #   → GREEN: models.py に Priority enum を追加、テストをパス
 #   → REFACTOR: コード整理
 #   → pytest ✅  ruff ✅  mypy ✅
-#
+
+# ── コミット ──
 > /commit-push-close
 # → add: タスクに優先度フィールドを追加
 # → docs: タスクに優先度フィールドを追加のステアリングファイルを追加
@@ -349,26 +373,12 @@ claude
 # → Issue #12 クローズ
 ```
 
-#### パターンB: 計画と実装を分離
-
-要件を先に確認したい場合や、計画を見てから実装に進みたい場合に使います。
-
-```
-/plan [機能名 or issue URL]       ← 計画だけ（対話的に確認）
-    ↓
-  （ユーザーが内容を確認・修正）
-    ↓
-/implement [ステアリングディレクトリパス]  ← 実装だけ
-    ↓
-/commit-push-close
-```
-
-**具体例: 認証機能のように慎重に設計したい場合**
+**具体例2: 認証機能のように慎重に設計したい場合**
 
 ```bash
 claude
 # ── 計画フェーズ（対話的） ──
-> /plan ログイン機能を追加
+> /spec-plan ログイン機能を追加
 
 # Claude が質問:
 #   「認証方式をどれにしますか?」
@@ -394,15 +404,34 @@ claude
 > /commit-push-close
 ```
 
-#### パターンC: 小さな修正・ドキュメント更新
-
-コマンドを使わず、会話で直接依頼します。
+**具体例3: バグ修正（小規模タスク）**
 
 ```bash
 claude
-# ── バグ修正 ──
-> タスクの期限が UTC で保存されているので JST に修正して
+> /spec-plan 日付のタイムゾーン変換バグを修正
 
+# タスクボリューム: 【小規模】と判定
+#   - バグフィックスである
+#   - 単一ファイルの修正
+# → ユーザーが【小】tasklist のみ を選択
+#
+# .steering/20260215-日付のタイムゾーン変換バグを修正/ を作成
+#   → tasklist.md のみ（シンプルなタスクリスト）
+
+> /implement .steering/20260215-日付のタイムゾーン変換バグを修正/
+# → RED: 失敗するテストを書く
+# → GREEN: UTC→JST変換を修正、テストをパス
+# → pytest ✅  ruff ✅  mypy ✅
+
+> /commit-push-close
+```
+
+#### パターンB: 小さな修正・ドキュメント更新
+
+ステアリングファイルが不要な軽微な変更は、コマンドを使わず会話で直接依頼します。
+
+```bash
+claude
 # ── ドキュメント更新 ──
 > PRDに通知機能の要件を追加して
 > architecture.md のパフォーマンス要件を見直して
@@ -410,6 +439,9 @@ claude
 
 # ── リファクタリング ──
 > TaskService の重複したバリデーションロジックを共通化して
+
+# ── typo修正 ──
+> README.md の誤字を直して
 
 # ── コミット ──
 > /commit-push-close
@@ -419,12 +451,11 @@ claude
 
 | 状況 | 使うコマンド | ステアリングファイル |
 |------|-------------|-------------------|
-| 新規プロジェクト立ち上げ | `/setup-project` → `/add-feature` | 作成される |
-| 新機能追加（一気に完了） | `/add-feature` | 自動作成 |
-| 新機能追加（慎重に進めたい） | `/plan` → `/implement` | 対話的に作成 |
-| GitHub issue の実装 | `/add-feature [issue URL]` | 自動作成 |
-| バグ修正・小さな変更 | 会話で直接依頼 | 不要 |
-| ドキュメント更新 | 会話で直接依頼 | 不要 |
+| 新規プロジェクト立ち上げ | `/setup-project` → `/spec-plan` → `/implement` | 作成される |
+| 新機能追加 | `/spec-plan` → `/implement` | 対話的に作成 |
+| GitHub issue の実装 | `/spec-plan [issue URL]` → `/implement` | 対話的に作成 |
+| バグ修正（原因調査が必要） | `/spec-plan` → `/implement` | tasklist のみ |
+| 軽微な修正・ドキュメント更新 | 会話で直接依頼 | 不要 |
 | コミット・push・issue閉じ | `/commit-push-close` | — |
 | ドキュメントレビュー | `/review-docs [パス]` | — |
 
