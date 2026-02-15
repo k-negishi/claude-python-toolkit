@@ -226,6 +226,208 @@ ls -la .claude/commands/
 .claude-shared/.gitignore
 ```
 
+## 開発ワークフロー
+
+このツールキットを統合したプロジェクトでの、Claude Code を使った開発ワークフローです。
+
+### 初回: プロジェクト立ち上げ
+
+新規プロジェクトを開始する場合の流れです。
+
+```
+┌─────────────────────────────────────────────────┐
+│ 1. ツールキット統合                                │
+│    make claude-init                              │
+│                                                  │
+│ 2. アイデアを書き出す（任意）                       │
+│    docs/ideas/ にメモを配置                        │
+│                                                  │
+│ 3. /setup-project                                │
+│    → 6つの永続ドキュメントを対話的に作成            │
+│                                                  │
+│ 4. /add-feature [最初の機能]                       │
+│    → 計画 → TDD実装 → 品質チェック                 │
+│                                                  │
+│ 5. /commit-push-close                            │
+│    → コミット → push → issue クローズ              │
+└─────────────────────────────────────────────────┘
+```
+
+#### 具体例: タスク管理APIを新規開発する場合
+
+```bash
+# ── ステップ1: ツールキット統合 ──
+make claude-init
+cp .claude-shared/settings.example.json .claude/settings.json
+cp .claude-shared/CLAUDE.md.template CLAUDE.md
+git add . && git commit -m "chore: claude-python-toolkitを統合"
+
+# ── ステップ2: アイデアを書き出す（任意） ──
+mkdir -p docs/ideas
+cat > docs/ideas/initial-requirements.md << 'EOF'
+# タスク管理API
+
+- ユーザーがタスクを作成・編集・削除できる REST API
+- FastAPI + PostgreSQL
+- 認証はJWT
+- タスクにはラベルと期限を設定できる
+EOF
+
+# ── ステップ3: Claude Code で対話的にドキュメント作成 ──
+claude
+> /setup-project
+# → docs/ideas/ の内容を元に、以下の6ファイルを対話的に作成:
+#   ✅ docs/product-requirements.md   （PRD）
+#   ✅ docs/functional-design.md      （機能設計）
+#   ✅ docs/architecture.md           （アーキテクチャ）
+#   ✅ docs/repository-structure.md   （リポジトリ構造）
+#   ✅ docs/development-guidelines.md （開発ガイドライン）
+#   ✅ docs/glossary.md               （用語集）
+
+# ── ステップ4: 最初の機能を実装 ──
+> /add-feature タスクのCRUDを実装
+# → .steering/20260215-タスクのCRUDを実装/ に計画ファイルを作成
+# → TDD (RED → GREEN → REFACTOR) で自動実装
+# → pytest, ruff, mypy が全てパス
+
+# ── ステップ5: コミットしてpush ──
+> /commit-push-close
+```
+
+### 2回目以降: 機能追加・改修
+
+プロジェクトの永続ドキュメント（`docs/`）が既にある状態で、新しい機能追加や改修を行う場合の流れです。3つのパターンがあります。
+
+#### パターンA: 一気通貫（計画から実装まで自動）
+
+計画から実装まで一気に完了させたい場合に使います。
+
+```
+/add-feature [機能名 or issue URL]
+    ↓
+  /plan を自動実行
+    ├── プロジェクト理解（CLAUDE.md, docs/ を読む）
+    ├── 既存パターン調査（Grepでソースコード検索）
+    ├── 影響範囲の事前調査
+    ├── ステアリングファイル作成
+    │   └── .steering/[YYYYMMDD]-[機能名]/
+    │       ├── requirements.md（要件）
+    │       ├── design.md（設計）
+    │       └── tasklist.md（タスクリスト）
+    ↓
+  /implement を自動実行
+    ├── TDDサイクル（RED → GREEN → REFACTOR）
+    ├── 品質チェック（pytest, ruff, mypy）
+    └── 実装検証（implementation-validator）
+    ↓
+/commit-push-close
+```
+
+**具体例: GitHub issue から機能追加**
+
+```bash
+claude
+> /add-feature https://github.com/owner/task-api/issues/12
+# issue「タスクに優先度フィールドを追加」を自動取得
+#
+# 【計画フェーズ】
+#   → .steering/20260215-タスクに優先度フィールドを追加/ を作成
+#   → requirements.md: issue内容 + 実装方針（TDD）
+#   → design.md: Priority enum定義、DB migration、API変更
+#   → tasklist.md: 全タスクをTDDサブタスク付きで列挙
+#
+# 【実装フェーズ】
+#   → RED: test_priority.py に失敗するテストを書く
+#   → GREEN: models.py に Priority enum を追加、テストをパス
+#   → REFACTOR: コード整理
+#   → pytest ✅  ruff ✅  mypy ✅
+#
+> /commit-push-close
+# → add: タスクに優先度フィールドを追加
+# → docs: タスクに優先度フィールドを追加のステアリングファイルを追加
+# → git push
+# → Issue #12 クローズ
+```
+
+#### パターンB: 計画と実装を分離
+
+要件を先に確認したい場合や、計画を見てから実装に進みたい場合に使います。
+
+```
+/plan [機能名 or issue URL]       ← 計画だけ（対話的に確認）
+    ↓
+  （ユーザーが内容を確認・修正）
+    ↓
+/implement [ステアリングディレクトリパス]  ← 実装だけ
+    ↓
+/commit-push-close
+```
+
+**具体例: 認証機能のように慎重に設計したい場合**
+
+```bash
+claude
+# ── 計画フェーズ（対話的） ──
+> /plan ログイン機能を追加
+
+# Claude が質問:
+#   「認証方式をどれにしますか?」
+#   - JWT (推奨: ステートレスで拡張性が高い)
+#   - セッションベース (シンプルだがサーバー負荷が高い)
+# → JWT を選択
+
+# ステアリングファイルが生成される:
+#   .steering/20260215-ログイン機能を追加/
+#   ├── requirements.md
+#   ├── design.md
+#   └── tasklist.md
+
+# （ユーザーが内容を確認し、必要に応じて修正を依頼）
+> design.md のトークン有効期限を30分に変更して
+
+# ── 実装フェーズ ──
+> /implement .steering/20260215-ログイン機能を追加/
+# → TDD サイクルで実装
+# → 全テスト・品質チェックがパス
+
+# ── コミット ──
+> /commit-push-close
+```
+
+#### パターンC: 小さな修正・ドキュメント更新
+
+コマンドを使わず、会話で直接依頼します。
+
+```bash
+claude
+# ── バグ修正 ──
+> タスクの期限が UTC で保存されているので JST に修正して
+
+# ── ドキュメント更新 ──
+> PRDに通知機能の要件を追加して
+> architecture.md のパフォーマンス要件を見直して
+> glossary.md に「優先度」の定義を追加して
+
+# ── リファクタリング ──
+> TaskService の重複したバリデーションロジックを共通化して
+
+# ── コミット ──
+> /commit-push-close
+```
+
+### ワークフローの使い分け早見表
+
+| 状況 | 使うコマンド | ステアリングファイル |
+|------|-------------|-------------------|
+| 新規プロジェクト立ち上げ | `/setup-project` → `/add-feature` | 作成される |
+| 新機能追加（一気に完了） | `/add-feature` | 自動作成 |
+| 新機能追加（慎重に進めたい） | `/plan` → `/implement` | 対話的に作成 |
+| GitHub issue の実装 | `/add-feature [issue URL]` | 自動作成 |
+| バグ修正・小さな変更 | 会話で直接依頼 | 不要 |
+| ドキュメント更新 | 会話で直接依頼 | 不要 |
+| コミット・push・issue閉じ | `/commit-push-close` | — |
+| ドキュメントレビュー | `/review-docs [パス]` | — |
+
 ## トラブルシューティング
 
 ### Subtree追加時にコンフリクトが発生した場合
