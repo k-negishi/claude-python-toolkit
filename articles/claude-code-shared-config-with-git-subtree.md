@@ -1,203 +1,115 @@
 ---
-title: "Claude Codeの.claude設定を複数プロジェクトで共有する -- Git Subtree + symlink構成"
+title: "Claude Codeの.claude設定を複数プロジェクトで使い回す構成を考えた"
 emoji: "🔧"
 type: "tech"
 topics: ["claudecode", "git", "開発環境"]
 published: false
 ---
 
-## やりたいこと
+## 問題: .claudeがプロジェクトごとにコピペで増殖する
 
-Claude Codeを複数のプロジェクトで使っていると、コマンドやスキルの定義が各プロジェクトにコピペで散らばっていく。修正があれば全プロジェクトを手作業で直す羽目になる。
+Claude Codeを複数プロジェクトで使っていると、`.claude/`の中身がプロジェクトごとにコピペで散らばる。コマンドやスキルを改善したら、同じ修正を全プロジェクトで繰り返す。設定ファイルの管理としてはかなりつらい状態になる。
 
-これを解消するために、**共有したい`.claude`の中身を別リポジトリに切り出し**、各プロジェクトにはGit Subtreeで取り込む構成を採った。プロジェクト固有の設定はそのまま`.claude/`に置けるので、共通と固有が自然に共存する。
+一方で、`settings.json`やプロジェクト固有のコマンドなど、プロジェクトごとに違って当然のものもある。全部を共通化すればいいという話ではない。
 
-## 構成の全体像
+やりたいことを整理するとこうなる。
+
+- 共通のコマンド・スキル・エージェントは1箇所で管理したい
+- プロジェクト固有の設定はプロジェクト側に置きたい
+- 両者が自然に共存してほしい
+
+## 考え方: 「共有リポ」と「プロジェクトの.claude/」を分ける
+
+結論として、**共通設定を独立したGitリポジトリに切り出し**、各プロジェクトにはGit Subtreeで取り込む構成にした。
 
 ```
 プロジェクト/
-├── .claude-shared/              # Git Subtreeで共有リポを配置
-│   ├── commands/                # 共通コマンド（実ファイル）
-│   ├── skills/                  # 共通スキル（実ファイル）
-│   └── agents/                  # 共通エージェント（実ファイル）
-├── .claude/                     # Claude Codeが認識するディレクトリ
+├── .claude-shared/              # 共有リポをSubtreeで配置
 │   ├── commands/
-│   │   ├── spec-plan.md         # <- symlink（共通）
-│   │   └── my-deploy.md         # <- 実ファイル（プロジェクト固有）
 │   ├── skills/
-│   │   ├── steering/            # <- symlink（共通）
-│   │   └── local-qa/            # <- 実ファイル（プロジェクト固有）
-│   ├── agents/
-│   │   └── doc-reviewer.md      # <- symlink（共通）
-│   └── settings.json            # プロジェクト固有の設定
-└── Makefile                     # Subtree + symlink管理
+│   └── agents/
+├── .claude/                     # Claude Codeが見るディレクトリ
+│   ├── commands/
+│   │   ├── spec-plan.md         # <- symlink（共通から）
+│   │   └── my-deploy.md         # <- 実ファイル（このプロジェクト固有）
+│   ├── skills/
+│   │   ├── git-commit/          # <- symlink（共通から）
+│   │   └── local-qa/            # <- 実ファイル（このプロジェクト固有）
+│   └── settings.json            # プロジェクト固有
+└── Makefile
 ```
 
-仕組みは単純で、`.claude-shared/`に共有リポの実体を置き、`.claude/`の中からsymlinkで参照する。Claude Codeは`.claude/`だけを見るので、symlinkか実ファイルかは気にしない。Gitもsymlinkをそのままトラッキングしてくれる。
+ポイントは2つある。
+
+**1. Claude Codeが見る`.claude/`と、共有リポの実体`.claude-shared/`を分離する。** Claude Codeは`.claude/`しか見ない。共有リポの実体は`.claude-shared/`に入れて、`.claude/`からはsymlinkで参照する。symlinkか実ファイルかはClaude Codeもgitも区別しないので、透過的に動く。
+
+**2. 「既にファイルがあればsymlinkを張らない」というルールで、共通と固有を共存させる。** symlinkの作成時に同名ファイルの存在チェックを入れるだけで、プロジェクト固有のファイルが共通設定に上書きされることがなくなる。共通のコマンドを特定のプロジェクトだけ差し替えたい場合も、`.claude/`に同名の実ファイルを置けばそちらが優先される。
 
 ## なぜGit Subtreeか
 
-Git Submoduleでもできるが、Subtreeを選んだ理由はいくつかある。
+共有リポを取り込む方法としてGit SubmoduleとGit Subtreeの2択がある。
 
-- `clone`しただけで全ファイルが揃う（Submoduleは`--recursive`が必要）
-- 共有リポの変更をプロジェクト側でローカルに修正してコミットできる
-- CIで追加の初期化ステップが不要
-- 操作がシンプル
+Submoduleは「参照を持つ」方式で、cloneした後に`git submodule update --init`が必要になる。CIでも追加のステップが要る。`.claude/`のような設定ファイル群でこの手間は割に合わない。
 
-Submoduleは「参照」に近く、Subtreeは「コピーを取り込む」に近い。`.claude/`のような設定ファイル群は後者のほうが扱いやすかった。
+Subtreeは「ファイルをそのまま取り込む」方式で、cloneするだけで全ファイルが揃う。プロジェクト側でローカルに修正してコミットもできるし、その修正を共有リポに還元することもできる。設定ファイルの共有にはこちらのほうが素直だと感じた。
 
-## セットアップ手順
+## Makefileで操作をまとめる
 
-### 共有リポの準備
-
-まず、共有したいコマンドやスキルを独立したリポジトリにまとめる。
-
-```
-claude-shared-config/
-├── commands/
-│   ├── spec-plan.md
-│   └── add-feature.md
-├── skills/
-│   ├── steering/
-│   │   └── SKILL.md
-│   └── git-commit/
-│       └── SKILL.md
-└── agents/
-    └── doc-reviewer.md
-```
-
-これを普通にGitリポジトリとして管理する。
-
-### プロジェクトへの統合
-
-プロジェクト側で以下を実行する。
-
-```bash
-# 1. Subtreeとして追加
-git subtree add --prefix=.claude-shared \
-  https://github.com/yourname/claude-shared-config.git main --squash
-
-# 2. .claude/ のディレクトリ構造を作成
-mkdir -p .claude/commands .claude/skills .claude/agents
-
-# 3. symlinkを作成
-for item in .claude-shared/commands/*; do
-  name=$(basename "$item")
-  [ ! -e ".claude/commands/$name" ] && ln -s "../../.claude-shared/commands/$name" ".claude/commands/$name"
-done
-# skills, agents も同様
-```
-
-手作業でsymlinkを張るのは面倒なので、Makefileにまとめておく。
+Subtreeのコマンドは長いし、symlinkの作成もそれなりに手順がある。これを毎回手で打つのは現実的ではないので、Makefileにまとめた。
 
 ```makefile
 REPO_URL = https://github.com/yourname/claude-shared-config.git
 BRANCH = main
 
+# 初回セットアップ: Subtree追加 + symlink作成
 claude-init:
 	git subtree add --prefix=.claude-shared $(REPO_URL) $(BRANCH) --squash
 	$(MAKE) claude-link
 
+# 共有リポの更新を取り込み + symlink再作成
 claude-update:
 	git subtree pull --prefix=.claude-shared $(REPO_URL) $(BRANCH) --squash
 	$(MAKE) claude-link
 
+# symlink作成（既存ファイルはスキップ）
 claude-link:
 	@mkdir -p .claude/commands .claude/skills .claude/agents
 	@for item in .claude-shared/commands/*; do \
 	  name=$$(basename "$$item"); \
-	  [ ! -e ".claude/commands/$$name" ] && ln -s "../../.claude-shared/commands/$$name" ".claude/commands/$$name" || true; \
+	  [ ! -e ".claude/commands/$$name" ] && \
+	    ln -s "../../.claude-shared/commands/$$name" ".claude/commands/$$name" || true; \
 	done
-	@for item in .claude-shared/skills/*; do \
-	  name=$$(basename "$$item"); \
-	  [ ! -e ".claude/skills/$$name" ] && ln -s "../../.claude-shared/skills/$$name" ".claude/skills/$$name" || true; \
-	done
-	@for item in .claude-shared/agents/*; do \
-	  name=$$(basename "$$item"); \
-	  [ ! -e ".claude/agents/$$name" ] && ln -s "../../.claude-shared/agents/$$name" ".claude/agents/$$name" || true; \
-	done
-
-claude-clean:
-	@find .claude/commands -type l -delete 2>/dev/null || true
-	@find .claude/skills -type l -delete 2>/dev/null || true
-	@find .claude/agents -type l -delete 2>/dev/null || true
+	# skills, agents も同様の処理
 ```
 
-`make claude-init` で初回セットアップ、`make claude-update` で共有リポの更新を取り込める。
+覚えるのは3つだけ。
 
-### プロジェクト固有の設定を追加
+| コマンド | やること |
+|---------|--------|
+| `make claude-init` | 初回セットアップ |
+| `make claude-update` | 共有リポの更新を反映 |
+| `make claude-link` | symlinkだけ再作成 |
 
-`.claude/`に直接ファイルを置けば、それがプロジェクト固有の設定になる。
+Makefileの中身を意識する必要はなくて、この3つを叩くだけで運用できる。
 
-```bash
-# プロジェクト固有のコマンドを追加
-cat > .claude/commands/deploy.md << 'EOF'
-このプロジェクト固有のデプロイコマンド
-...
-EOF
+`claude-link`の「既存ファイルがあればスキップ」が重要で、これがあるからプロジェクト固有ファイルと共有ファイルが衝突しない。`make claude-update`した後も、プロジェクト固有のファイルはそのまま残る。
 
-# settings.json はプロジェクトごとに異なる
-cp .claude-shared/settings.example.json .claude/settings.json
-```
+## 運用してみて
 
-`claude-link`は既存ファイルがあればsymlinkを作らないので、プロジェクト固有ファイルが勝手に上書きされることはない。同名ファイルを`.claude/`に実ファイルとして置けば、共有側を上書きする形にもなる。
+この構成で複数のPythonプロジェクトを回してみた所感を書いておく。
 
-## 運用の流れ
+**修正が1回で済む。** 共有コマンドにバグがあったとき、共有リポで直して各プロジェクトで`make claude-update`するだけ。以前は同じ修正を3つも4つもプロジェクトで繰り返していたのが嘘のように楽になった。
 
-### 共有リポの更新を反映する
+**共通と固有が混ざらない。** `ls -la .claude/commands/`すればsymlinkには`->`が表示されるので、どれが共通でどれが固有かすぐわかる。頭の中で管理する必要がない。
 
-```bash
-make claude-update
-git add .claude-shared/ .claude/
-git commit -m "chore: claude-shared-configを更新"
-```
-
-### 共有リポ側に修正をフィードバックする
-
-プロジェクト側で共有コマンドを改善した場合、共有リポに還元できる。
-
-```bash
-# .claude-shared/ 内のファイルを編集してコミット
-vim .claude-shared/commands/spec-plan.md
-git add .claude-shared/
-git commit -m "improve: spec-planの出力フォーマットを改善"
-
-# 共有リポにpush
-git subtree push --prefix=.claude-shared \
-  https://github.com/yourname/claude-shared-config.git main
-```
-
-## symlinkで確認する
-
-実際にsymlinkが正しく張られているかは`ls -la`で確認できる。
-
-```bash
-$ ls -la .claude/commands/
-lrwxr-xr-x  spec-plan.md -> ../../.claude-shared/commands/spec-plan.md
-lrwxr-xr-x  add-feature.md -> ../../.claude-shared/commands/add-feature.md
--rw-r--r--  deploy.md    # プロジェクト固有（実ファイル）
-```
-
-symlinkは`->`で参照先が表示されるので、どれが共有でどれが固有かひと目でわかる。
-
-## この構成で得られたもの
-
-実際にこの構成で複数のPythonプロジェクトを運用してみて、いくつか実感した利点がある。
-
-**共有設定の一元管理**: コマンドやスキルのバグ修正・改善を共有リポで一度行えば、各プロジェクトで`make claude-update`するだけで反映される。以前はプロジェクトごとに同じ修正を繰り返していた。
-
-**プロジェクト固有設定との共存**: `settings.json`やプロジェクト特有のコマンドは`.claude/`に直接置ける。共有と固有がディレクトリ上で明確に分かれるので、どのファイルがどちらに属するか迷わない。
-
-**新規プロジェクトの立ち上げが速い**: `make claude-init`だけで共有設定が丸ごと入る。あとはプロジェクト固有の`settings.json`と`CLAUDE.md`を用意すれば開発を始められる。
+**新規プロジェクトの立ち上げが速い。** `make claude-init`の一発で共有設定が入る。あとは`settings.json`とプロジェクト固有のファイルを足すだけで開発を始められる。
 
 ## 注意点
 
-- `.claude-shared/.gitignore`がプロジェクトの`.gitignore`と競合することがある。プロジェクトの`.gitignore`に`.claude-shared/.gitignore`を追加しておくとよい
-- symlinkはWindowsで扱いが異なる。開発者全員がmacOS/Linuxなら問題ないが、Windowsユーザーがいる場合はGitの`core.symlinks`設定を確認する必要がある
-- Subtreeのコミット履歴はプロジェクトのログに混ざる。`--squash`オプションで1コミットにまとめているが、それでも気になる場合がある
+- symlinkはWindowsだと扱いが異なる。チーム全員がmacOS/Linuxなら問題ないが、Windowsユーザーがいる場合は事前に確認が必要
+- Subtreeのコミット履歴はプロジェクト側のgit logに混ざる。`--squash`で1コミットにまとめてはいるが、気になる人は気になるかもしれない
+- 共有リポの`.gitignore`がプロジェクトと競合することがあるので、`.claude-shared/.gitignore`はプロジェクトの`.gitignore`で除外しておくとよい
 
 ## まとめ
 
-Claude Codeの`.claude`ディレクトリをGit Subtree + symlinkで管理する構成を紹介した。共有リポに共通設定を集約し、プロジェクト側では`.claude-shared/`経由のsymlinkと直接配置の実ファイルを共存させる。仕組み自体はシンプルで、Makefileに数個のターゲットを用意するだけで運用できる。
-
-同じような設定の散在に困っている人は、試してみる価値はあると思う。
+Claude Codeの`.claude/`設定を複数プロジェクトで共有するために、共有リポ + Git Subtree + symlinkという構成を採った。考え方はシンプルで、共有したいものは別リポに、プロジェクト固有のものは`.claude/`に直接置く。Makefileで操作をまとめれば、日常の運用は`make claude-update`だけで回る。
