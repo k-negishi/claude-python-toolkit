@@ -55,19 +55,20 @@ published: false
 
 ### symlinkだけで共有する
 
-一番シンプルなのは、共有リポをローカルの適当な場所にcloneしておいて、各プロジェクトの`.claude/`からsymlinkを張る方法です。
+一番シンプルなのは、`.claude/commands/`などのディレクトリ自体を共有リポへのsymlinkにしてしまう方法です。
 
 ```bash
-# 共有リポを ~/claude-shared にclone
-git clone https://github.com/yourname/claude-shared-config.git ~/claude-shared
+# 共有設定を ~/.config/claude-shared/ で管理
+git clone https://github.com/yourname/claude-shared-config.git ~/.config/claude-shared
 
-# プロジェクトから絶対パスでsymlink
-ln -s ~/claude-shared/commands/spec-plan.md .claude/commands/spec-plan.md
+# ディレクトリごとsymlinkで差し替え
+ln -s ~/.config/claude-shared/commands .claude/commands
+ln -s ~/.config/claude-shared/skills .claude/skills
 ```
 
-手軽ですが、問題がいくつかあります。symlinkが絶対パスになるので、他の開発者が同じパスにcloneしていないと壊れます。`.claude/`の中身をgit管理しようとしても、symlinkの参照先がリポジトリ外なのでチームで共有できません。結局「各自のローカル環境に依存する」構成になってしまいます。
+手軽ですが、問題がいくつかあります。まず、ディレクトリ単位のsymlinkなので、プロジェクト固有のコマンドを`.claude/commands/`に追加すると共有リポ側に混ざってしまいます。「共通」と「固有」の共存ができません。また、symlinkが絶対パスになるので、他の開発者が同じパスにcloneしていないと壊れます。`.claude/`の中身をgit管理しようとしても、参照先がリポジトリ外なのでチームで共有もできません。
 
-個人で1台のマシンだけで使うなら十分ですが、チーム開発やCI環境まで考えると厳しいです。
+個人で1台のマシンだけ、かつ共通設定のみで運用するなら十分ですが、プロジェクト固有の設定が出てきた時点で破綻します。
 
 ### Git Submodule
 
@@ -105,6 +106,10 @@ claude-update:
 	git subtree pull --prefix=.claude-shared $(REPO_URL) $(BRANCH) --squash
 	$(MAKE) claude-link
 
+# プロジェクト側の変更を共有リポに還元
+claude-push:
+	git subtree push --prefix=.claude-shared $(REPO_URL) $(BRANCH)
+
 # symlink作成（既存ファイルはスキップ）
 claude-link:
 	@mkdir -p .claude/commands .claude/skills .claude/agents
@@ -116,15 +121,16 @@ claude-link:
 	# skills, agents も同様の処理
 ```
 
-覚えるのは3つだけです。
+覚えるのは4つだけです。
 
 | コマンド | やること |
 |---------|--------|
 | `make claude-init` | 初回セットアップ |
 | `make claude-update` | 共有リポの更新を反映 |
+| `make claude-push` | プロジェクト側の変更を共有リポに還元 |
 | `make claude-link` | symlinkだけ再作成 |
 
-Makefileの中身を意識する必要はなくて、この3つを叩くだけで運用できます。
+Makefileの中身を意識する必要はなくて、この4つを叩くだけで運用できます。
 
 `claude-link`の「既存ファイルがあればスキップ」が重要で、これがあるからプロジェクト固有ファイルと共有ファイルが衝突しません。`make claude-update`した後も、プロジェクト固有のファイルはそのまま残ります。
 
